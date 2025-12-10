@@ -1,5 +1,5 @@
-import Agent from "@tokenring-ai/agent/Agent.ts";
-import {TokenRingAgentCommand} from "@tokenring-ai/agent/types.ts";
+import Agent from "@tokenring-ai/agent/Agent";
+import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import SchedulerService from "../SchedulerService.ts";
 
 const description = "/schedule - Display current schedule and run history." as const;

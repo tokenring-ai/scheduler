@@ -2,6 +2,7 @@ import {AgentManager} from "@tokenring-ai/agent";
 import {AgentEventState} from "@tokenring-ai/agent/state/agentEventState";
 import TokenRingApp from "@tokenring-ai/app";
 import {TokenRingService} from "@tokenring-ai/app/types";
+import waitForAbort from "@tokenring-ai/utility/promise/waitForAbort";
 import {z} from "zod";
 
 const INTERVALS: Record<string, number> = {
@@ -65,16 +66,17 @@ export default class SchedulerService implements TokenRingService {
     });
   }
 
-  async start(): Promise<void> {
+  async run(signal: AbortSignal): Promise<void> {
     this.isRunning = true;
     this.app.serviceOutput(`[SchedulerService] Starting with ${this.tasks.length} scheduled tasks`);
-    
-    this.app.scheduleEvery(10000, () => this.runTasks());
-  }
 
-  async stop(): Promise<void> {
-    this.isRunning = false;
-    this.app.serviceOutput(`[SchedulerService] Stopped`);
+    //TODO: this is whacky, should just be a normal promise based timer loop
+    this.app.scheduleEvery(10000, () => this.runTasks());
+
+    return waitForAbort(signal, async (ev) => {
+      this.isRunning = false;
+      this.app.serviceOutput(`[SchedulerService] Stopped`);
+    });
   }
 
   private async runTasks(): Promise<void> {

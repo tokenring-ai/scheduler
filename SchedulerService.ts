@@ -52,7 +52,7 @@ export default class SchedulerService implements TokenRingService {
   description = "Schedules AI agents to run at specified intervals";
   
   private app: TokenRingApp;
-  private tasks: ScheduleTask[];
+  private readonly tasks: ScheduleTask[];
   private taskStates: Map<number, TaskState> = new Map();
   private isRunning = false;
   private runHistory: TaskRunHistory[] = [];

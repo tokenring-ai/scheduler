@@ -4,7 +4,6 @@ import {TokenRingPlugin} from "@tokenring-ai/app";
 import {z} from "zod";
 import chatCommands from "./chatCommands.ts";
 import SchedulerService, {ScheduleTaskSchema} from "./SchedulerService.ts";
-import scheduleCommand from "./commands/schedule.ts";
 import packageJSON from './package.json' with {type: 'json'};
 
 export const SchedulerConfigSchema = z.object({

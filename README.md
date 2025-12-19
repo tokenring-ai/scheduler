@@ -1,6 +1,10 @@
 # @tokenring-ai/scheduler
 
-Schedule AI agents to run at specified intervals with a user-friendly JSON configuration.
+Schedule AI agents to run at specified intervals with comprehensive timing control and monitoring capabilities.
+
+## Overview
+
+The Scheduler service provides automated scheduling for AI agents with flexible timing options, runtime monitoring, and task state management. It integrates seamlessly with the TokenRing ecosystem through automatic service registration and provides real-time monitoring through chat commands.
 
 ## Installation
 
@@ -23,7 +27,16 @@ const app = new TokenRingApp({
 app.install(scheduler);
 ```
 
-### Configuration
+### Automatic Service Registration
+
+The scheduler service automatically registers with TokenRing applications when tasks are configured. The plugin:
+
+1. Validates configuration using Zod schemas
+2. Registers chat commands automatically
+3. Creates and manages the SchedulerService instance
+4. Provides real-time task monitoring
+
+## Configuration
 
 Add a `scheduler` section to your `.tokenring/config.mjs`:
 
@@ -63,9 +76,9 @@ export default {
 
 ### Task Properties
 
-- **name** (required): Task identifier for logging
-- **agentType** (required): Agent type to spawn
-- **message** (required): Message to send to the agent
+- **name** (required): Unique task identifier for logging and monitoring
+- **agentType** (required): Agent type to spawn (must be available in AgentManager)
+- **message** (required): Message to send to the spawned agent
 
 ### Timing Options
 
@@ -75,12 +88,50 @@ export default {
 - **from**: Start time in HH:MM format (e.g., "09:00")
 - **to**: End time in HH:MM format (e.g., "17:00")
 - **on**: Days of week (e.g., "mon tue wed", "sat sun")
-- **dayOfMonth**: Specific day (1-31)
+- **dayOfMonth**: Specific day of month (1-31)
 
 ### Execution Options
 
 - **several**: Allow multiple simultaneous runs (default: false)
-- **noLongerThan**: Maximum runtime (e.g., "10 minutes")
+- **noLongerThan**: Maximum runtime duration (e.g., "10 minutes")
+
+## Chat Commands
+
+### /schedule Command
+
+The scheduler provides a comprehensive chat command for monitoring:
+
+```
+/schedule
+```
+
+**Output:**
+- Current scheduled tasks with next/last run times
+- Task execution status (Running/Idle)
+- Last 50 agent execution runs with status and duration
+- Error information for failed runs
+
+**Example Output:**
+```
+=== Scheduled Tasks ===
+
+**Daily Report** (reportGenerator)
+  Message: /chat Generate daily report
+  Status: Idle
+  Next Run: Mon, Jan 15, 2024, 9:00:00 AM
+  Last Run: Sun, Jan 14, 2024, 9:00:00 AM
+
+**Health Check** (healthMonitor)
+  Message: /chat Check system health
+  Status: Running
+  Next Run: Mon, Jan 14, 2024, 2:30:00 PM
+
+Last 10 Runs ===
+
+[Mon, Jan 15, 2024, 9:00:00 AM] Daily Report - completed (45s)
+[Mon, Jan 15, 2024, 8:30:00 AM] Health Check - failed (300s)
+  Error: Agent timeout exceeded
+```
 
 ## Examples
 
@@ -135,6 +186,18 @@ export default {
 }
 ```
 
+### Allow Multiple Concurrent Runs
+
+```javascript
+{
+  name: "Parallel Processing",
+  agentType: "processingAgent",
+  message: "/chat Process queue",
+  every: "5 minutes",
+  several: true
+}
+```
+
 ## API Reference
 
 ### ScheduleTask
@@ -159,11 +222,64 @@ interface ScheduleTask {
 ### SchedulerService
 
 ```typescript
-class SchedulerService {
+class SchedulerService implements TokenRingService {
+  name = "SchedulerService";
+  description = "Schedules AI agents to run at specified intervals";
+  
   constructor(app: TokenRingApp, tasks: ScheduleTask[]);
-  start(): Promise<void>;
-  stop(): Promise<void>;
+  run(signal: AbortSignal): Promise<void>;
+  getStatus(): SchedulerStatus;
 }
+```
+
+### SchedulerStatus
+
+```typescript
+interface SchedulerStatus {
+  tasks: TaskStatus[];
+  history: TaskRunHistory[];
+}
+
+interface TaskStatus {
+  name: string;
+  agentType: string;
+  message: string;
+  isRunning: boolean;
+  nextRun?: number;
+  lastRun?: number;
+}
+
+interface TaskRunHistory {
+  taskName: string;
+  startTime: number;
+  endTime?: number;
+  error?: string;
+}
+```
+
+## Configuration Schema
+
+The scheduler uses Zod for configuration validation:
+
+```typescript
+const SchedulerConfigSchema = z.object({
+  tasks: z.array(ScheduleTaskSchema)
+}).optional();
+
+const ScheduleTaskSchema = z.object({
+  name: z.string(),
+  agentType: z.string(),
+  every: z.string().optional(),
+  spaced: z.string().optional(),
+  once: z.boolean().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  on: z.string().optional(),
+  dayOfMonth: z.number().min(1).max(31).optional(),
+  noLongerThan: z.string().optional(),
+  several: z.boolean().optional(),
+  message: z.string(),
+});
 ```
 
 ## Time Intervals
@@ -178,9 +294,47 @@ Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours")
 
 ## Days of Week
 
-Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
+Use three-letter abbreviations: `sun`, `mon`, ` tue`, `wed`, `thu`, `fri`, `sat`
 
 Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
+
+## Task State Management
+
+The scheduler maintains detailed state for each task:
+
+- **nextRun**: Timestamp for next execution
+- **lastRun**: Timestamp of last execution
+- **isRunning**: Current execution status
+- **startTime**: When current run started
+- **maxRunTime**: Runtime limit for timeout detection
+
+## Error Handling
+
+- **Runtime Timeout**: Tasks exceeding `noLongerThan` are logged and terminated
+- **Agent Errors**: Execution errors are captured in run history
+- **Configuration Validation**: Invalid configurations prevent service startup
+- **Graceful Shutdown**: Tasks complete before service termination
+
+## Monitoring and Logging
+
+- **Service Output**: Real-time logging of task scheduling and execution
+- **Run History**: Last 50 executions tracked with timing and error information
+- **Status Monitoring**: Real-time task status through `/schedule` command
+- **Performance Tracking**: Runtime duration and timeout monitoring
+
+## Integration Features
+
+- **Automatic Registration**: Plugin automatically registers services and commands
+- **Agent Integration**: Seamless integration with AgentManager for agent spawning
+- **Event Streaming**: Real-time event monitoring during agent execution
+- **State Persistence**: Task state maintained across service restarts
+- **Headless Operation**: All scheduled agents run in headless mode by default
+
+## Dependencies
+
+- `@tokenring-ai/app`: Application framework integration
+- `@tokenring-ai/agent`: Agent spawning and management
+- `zod`: Configuration validation
 
 ## License
 

@@ -103,7 +103,7 @@ export default class SchedulerService implements TokenRingService {
       if (state.nextRun && state.nextRun <= now) {
         state.lastRun = now;
         delete state.nextRun;
-        this.app.trackPromise(this.runTask(i));
+        this.app.trackPromise(() => this.runTask(i));
       }
     }
   }

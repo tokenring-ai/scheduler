@@ -4,7 +4,7 @@ import SchedulerService from "../SchedulerService.ts";
 
 const description = "/schedule - Display current schedule and run history." as const;
 
-export function execute(remainder: string | undefined, agent: Agent): void {
+export function execute(remainder: string, agent: Agent): void {
   const scheduler = agent.app.getService(SchedulerService);
   
   if (!scheduler) {

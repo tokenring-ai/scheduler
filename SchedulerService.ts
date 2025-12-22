@@ -89,8 +89,8 @@ export default class SchedulerService implements TokenRingService {
       const state = this.taskStates.get(i)!;
 
       if (state.isRunning && !task.several) {
-        if (state.maxRunTime && now > state.maxRunTime) {
-          const runtime = now - (state.startTime || 0);
+        //TODO: this should kill the task or something?
+        if (state.maxRunTime && now - (state.startTime || 0) > state.maxRunTime) {
           this.app.serviceError(`[SchedulerService] Task ${task.name} exceeded max runtime`);
         }
         continue;
@@ -190,13 +190,19 @@ export default class SchedulerService implements TokenRingService {
 
       const unsubscribe = agent.subscribeState(AgentEventState, (state) => {
         for (const event of state.yieldEventsByCursor(eventCursor)) {
-          if (event.type === "output.system") {
-            this.app.serviceOutput(`[SchedulerService:${task.name}] ${event.message}`);
-          } else if (event.type === "input.handled" && event.requestId === requestId) {
-            unsubscribe();
+          switch (event.type) {
+            case 'output.info':
+            case 'output.warning':
+            case 'output.error':
+              this.app.serviceError(`[SchedulerService:${task.name}] ${event.message}`);
+              break;
+            case 'input.handled':
+              if (event.requestId === requestId) {
+                unsubscribe();
 
-            agent.config.idleTimeout = 3600_000; // Leave agent alive for 1 hour
-            //this.app.trackPromise(agentManager.deleteAgent(agent));
+                agent.config.idleTimeout = 3600_000; // Leave agent alive for 1 hour
+                //this.app.trackPromise(agentManager.deleteAgent(agent));
+              }
             return;
           }
         }

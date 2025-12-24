@@ -1,6 +1,6 @@
 # @tokenring-ai/scheduler
 
-Schedule AI agents to run at specified intervals with comprehensive timing control and monitoring capabilities.
+Schedule AI agents to run at specified intervals with comprehensive timing control, runtime monitoring, and task state management.
 
 ## Overview
 
@@ -9,7 +9,7 @@ The Scheduler service provides automated scheduling for AI agents with flexible 
 ## Installation
 
 ```bash
-npm install @tokenring-ai/scheduler
+bun install @tokenring-ai/scheduler
 ```
 
 ## Usage
@@ -294,7 +294,7 @@ Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours")
 
 ## Days of Week
 
-Use three-letter abbreviations: `sun`, `mon`, ` tue`, `wed`, `thu`, `fri`, `sat`
+Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
 
 Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
 

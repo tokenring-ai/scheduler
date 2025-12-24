@@ -101,9 +101,14 @@ export default class SchedulerService implements TokenRingService {
       }
 
       if (state.nextRun && state.nextRun <= now) {
-        state.lastRun = now;
-        delete state.nextRun;
-        this.app.trackPromise(() => this.runTask(i));
+        if (this.checkTaskConditions(task, new Date(now * 1000))) {
+          state.lastRun = now;
+          delete state.nextRun;
+          this.app.trackPromise(() => this.runTask(i));
+        } else {
+          delete state.nextRun;
+          this.retimeTask(i);
+        }
       }
     }
   }
@@ -113,28 +118,19 @@ export default class SchedulerService implements TokenRingService {
     const state = this.taskStates.get(taskIndex)!;
     const now = new Date();
 
-    if (task.dayOfMonth !== undefined && task.dayOfMonth !== now.getDate()) return;
-    
-    if (task.on) {
-      const weekDay = WEEK_DAYS[now.getDay()];
-      if (!task.on.toLowerCase().includes(weekDay)) return;
-    }
-
-    if (task.from) {
-      const [fromHour, fromMin] = task.from.split(':').map(Number);
-      if (now.getHours() < fromHour || (now.getHours() === fromHour && now.getMinutes() < fromMin)) return;
-    }
-
-    if (task.to) {
-      const [toHour, toMin] = task.to.split(':').map(Number);
-      if (now.getHours() > toHour || (now.getHours() === toHour && now.getMinutes() > toMin)) return;
-    }
-
     if (task.every) {
-      const interval = this.parseInterval(task.every);
-      if (interval) {
-        state.nextRun = state.lastRun ? state.lastRun + interval : Date.now() / 1000;
-        this.app.serviceOutput(`[SchedulerService] Scheduled ${task.name} at ${new Date(state.nextRun * 1000).toLocaleString()}`);
+      // Check time window conditions for 'every' tasks
+      const inTimeWindow = this.checkTimeWindowConditions(task, now);
+      if (inTimeWindow) {
+        const interval = this.parseInterval(task.every);
+        if (interval) {
+          const currentTimeSeconds = now.getTime() / 1000;
+          state.nextRun = state.lastRun ? state.lastRun + interval : currentTimeSeconds + interval;
+          if (state.nextRun < currentTimeSeconds) {
+            state.nextRun = currentTimeSeconds + interval;
+          }
+          this.app.serviceOutput(`[SchedulerService] Scheduled ${task.name} at ${new Date(state.nextRun * 1000).toLocaleString()}`);
+        }
       }
       return;
     }
@@ -151,11 +147,39 @@ export default class SchedulerService implements TokenRingService {
     if (task.once) {
       const today = now.getDate();
       if (state.lastDay !== today) {
-        state.nextRun = Date.now() / 1000;
         state.lastDay = today;
-        this.app.serviceOutput(`[SchedulerService] Scheduled ${task.name} to run once`);
+        const shouldRun = this.checkTaskConditions(task, now);
+        if (shouldRun) {
+          state.nextRun = Date.now() / 1000;
+          this.app.serviceOutput(`[SchedulerService] Scheduled ${task.name} to run once`);
+        }
       }
     }
+  }
+
+  private checkTaskConditions(task: ScheduleTask, now: Date): boolean {
+    if (task.dayOfMonth !== undefined && task.dayOfMonth !== now.getDate()) return false;
+    
+    if (task.on) {
+      const weekDay = WEEK_DAYS[now.getDay()];
+      if (!task.on.toLowerCase().includes(weekDay)) return false;
+    }
+
+    return this.checkTimeWindowConditions(task, now);
+  }
+
+  private checkTimeWindowConditions(task: ScheduleTask, now: Date): boolean {
+    if (task.from) {
+      const [fromHour, fromMin] = task.from.split(':').map(Number);
+      if (now.getUTCHours() < fromHour || (now.getUTCHours() === fromHour && now.getUTCMinutes() < fromMin)) return false;
+    }
+
+    if (task.to) {
+      const [toHour, toMin] = task.to.split(':').map(Number);
+      if (now.getUTCHours() > toHour || (now.getUTCHours() === toHour && now.getUTCMinutes() > toMin)) return false;
+    }
+
+    return true;
   }
 
   private async runTask(taskIndex: number): Promise<void> {

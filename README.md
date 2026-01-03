@@ -36,65 +36,6 @@ The scheduler service automatically registers with TokenRing applications when t
 3. Creates and manages the SchedulerService instance
 4. Provides real-time task monitoring
 
-## Configuration
-
-Add a `scheduler` section to your `.tokenring/config.mjs`:
-
-```javascript
-export default {
-  scheduler: {
-    tasks: [
-      {
-        name: "Daily Report",
-        agentType: "reportGenerator",
-        message: "/chat Generate daily report",
-        once: true,
-        from: "09:00",
-        on: "mon tue wed thu fri"
-      },
-      {
-        name: "Health Check",
-        agentType: "healthMonitor",
-        message: "/chat Check system health",
-        every: "30 minutes",
-        noLongerThan: "5 minutes"
-      },
-      {
-        name: "Weekly Cleanup",
-        agentType: "cleanupAgent",
-        message: "/chat Clean up old files",
-        once: true,
-        on: "sun",
-        from: "02:00"
-      }
-    ]
-  }
-};
-```
-
-## Schedule Configuration
-
-### Task Properties
-
-- **name** (required): Unique task identifier for logging and monitoring
-- **agentType** (required): Agent type to spawn (must be available in AgentManager)
-- **message** (required): Message to send to the spawned agent
-
-### Timing Options
-
-- **every**: Run at fixed intervals (e.g., "30 seconds", "5 minutes", "2 hours")
-- **spaced**: Run with spacing between completions (e.g., "10 minutes")
-- **once**: Run once per day (boolean)
-- **from**: Start time in HH:MM format (e.g., "09:00")
-- **to**: End time in HH:MM format (e.g., "17:00")
-- **on**: Days of week (e.g., "mon tue wed", "sat sun")
-- **dayOfMonth**: Specific day of month (1-31)
-
-### Execution Options
-
-- **several**: Allow multiple simultaneous runs (default: false)
-- **noLongerThan**: Maximum runtime duration (e.g., "10 minutes")
-
 ## Chat Commands
 
 ### /schedule Command
@@ -132,6 +73,210 @@ Last 10 Runs ===
 [Mon, Jan 15, 2024, 8:30:00 AM] Health Check - failed (300s)
   Error: Agent timeout exceeded
 ```
+
+## Plugin Configuration
+
+The plugin configuration is defined in `plugin.ts` and validated using Zod schemas from `index.ts`.
+
+### Configuration Schema
+
+```typescript
+const packageConfigSchema = z.object({
+  scheduler: SchedulerConfigSchema.optional()
+});
+
+const SchedulerConfigSchema = z.object({
+  tasks: z.array(ScheduleTaskSchema)
+}).optional();
+```
+
+### Configuration Example
+
+Add a `scheduler` section to your `.tokenring/config.mjs`:
+
+```javascript
+export default {
+  scheduler: {
+    tasks: [
+      {
+        name: "Daily Report",
+        agentType: "reportGenerator",
+        message: "/chat Generate daily report",
+        once: true,
+        from: "09:00",
+        on: "mon tue wed thu fri"
+      },
+      {
+        name: "Health Check",
+        agentType: "healthMonitor",
+        message: "/chat Check system health",
+        every: "30 minutes",
+        noLongerThan: "5 minutes"
+      },
+      {
+        name: "Weekly Cleanup",
+        agentType: "cleanupAgent",
+        message: "/chat Clean up old files",
+        once: true,
+        on: "sun",
+        from: "02:00"
+      }
+    ]
+  }
+};
+```
+
+## Tools
+
+This package does not export tools directly.
+
+## Services
+
+### SchedulerService
+
+The SchedulerService implements the `TokenRingService` interface and provides automated scheduling for AI agents.
+
+**Constructor:**
+
+```typescript
+constructor(app: TokenRingApp, tasks: ScheduleTask[]);
+```
+
+**Properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` | Always "SchedulerService" |
+| `description` | `string` | "Schedules AI agents to run at specified intervals" |
+| `tasks` | `ScheduleTask[]` | Array of scheduled tasks |
+| `taskStates` | `Map<number, TaskState>` | Internal state tracking for each task |
+| `isRunning` | `boolean` | Service running status |
+| `runHistory` | `TaskRunHistory[]` | Execution history for all tasks |
+
+**Methods:**
+
+### run(signal: AbortSignal): Promise<void>
+
+Starts the scheduler service and begins the scheduling loop.
+
+```typescript
+async run(signal: AbortSignal): Promise<void> {
+  this.isRunning = true;
+  this.app.serviceOutput(`[SchedulerService] Starting with ${this.tasks.length} scheduled tasks`);
+  this.app.scheduleEvery(10000, () => this.runTasks());
+  return waitForAbort(signal, ...);
+}
+```
+
+### getStatus(): SchedulerStatus
+
+Returns the current status of all tasks and execution history.
+
+```typescript
+getStatus(): {
+  tasks: TaskStatus[];
+  history: TaskRunHistory[];
+}
+```
+
+**Returns:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tasks` | `TaskStatus[]` | Array of task statuses |
+| `history` | `TaskRunHistory[]` | Execution history |
+
+### TaskStatus Interface
+
+```typescript
+interface TaskStatus {
+  name: string;
+  agentType: string;
+  message: string;
+  isRunning: boolean;
+  nextRun?: number;
+  lastRun?: number;
+}
+```
+
+### TaskRunHistory Interface
+
+```typescript
+interface TaskRunHistory {
+  taskName: string;
+  startTime: number;
+  endTime?: number;
+  error?: string;
+}
+```
+
+## ScheduleTask Schema
+
+The ScheduleTask schema defines the structure for scheduled tasks:
+
+```typescript
+const ScheduleTaskSchema = z.object({
+  name: z.string(),
+  agentType: z.string(),
+  every: z.string().optional(),
+  spaced: z.string().optional(),
+  once: z.boolean().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  on: z.string().optional(),
+  dayOfMonth: z.number().min(1).max(31).optional(),
+  noLongerThan: z.string().optional(),
+  several: z.boolean().optional(),
+  message: z.string(),
+});
+```
+
+### ScheduleTask Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | `string` | Yes | Unique task identifier for logging and monitoring |
+| `agentType` | `string` | Yes | Agent type to spawn (must be available in AgentManager) |
+| `message` | `string` | Yes | Message to send to the spawned agent |
+| `every` | `string` | No | Run at fixed intervals (e.g., "30 seconds", "5 minutes", "2 hours") |
+| `spaced` | `string` | No | Run with spacing between completions (e.g., "10 minutes") |
+| `once` | `boolean` | No | Run once per day |
+| `from` | `string` | No | Start time in HH:MM format (e.g., "09:00") |
+| `to` | `string` | No | End time in HH:MM format (e.g., "17:00") |
+| `on` | `string` | No | Days of week (e.g., "mon tue wed", "sat sun") |
+| `dayOfMonth` | `number` | No | Specific day of month (1-31) |
+| `noLongerThan` | `string` | No | Maximum runtime duration (e.g., "10 minutes") |
+| `several` | `boolean` | No | Allow multiple simultaneous runs (default: false) |
+
+## Schedule Configuration
+
+### Time Intervals
+
+Supported time units:
+- `second`, `seconds`
+- `minute`, `minutes`
+- `hour`, `hours`
+- `day`, `days`
+
+Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours")
+
+### Days of Week
+
+Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
+
+Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
+
+### Task State Management
+
+The scheduler maintains detailed state for each task:
+
+| State Property | Description |
+|---------------|-------------|
+| `nextRun` | Timestamp for next execution |
+| `lastRun` | Timestamp of last execution |
+| `isRunning` | Current execution status |
+| `startTime` | When current run started |
+| `maxRunTime` | Runtime limit for timeout detection |
 
 ## Examples
 
@@ -198,127 +343,33 @@ Last 10 Runs ===
 }
 ```
 
-## API Reference
+## State Management
 
-### ScheduleTask
+The scheduler maintains task state in memory:
 
-```typescript
-interface ScheduleTask {
-  name: string;
-  agentType: string;
-  message: string;
-  every?: string;
-  spaced?: string;
-  once?: boolean;
-  from?: string;
-  to?: string;
-  on?: string;
-  dayOfMonth?: number;
-  noLongerThan?: string;
-  several?: boolean;
-}
-```
+- **Task States**: Each task has a `TaskState` object tracking `nextRun`, `lastRun`, `isRunning`, `startTime`, and `maxRunTime`
+- **Run History**: Execution history is stored in `runHistory` array, limited to track all runs (display limited to last 50 in `/schedule` command)
+- **State Persistence**: Task state is stored in memory and lost upon service restart
 
-### SchedulerService
+### Checkpoint Generation
 
-```typescript
-class SchedulerService implements TokenRingService {
-  name = "SchedulerService";
-  description = "Schedules AI agents to run at specified intervals";
-  
-  constructor(app: TokenRingApp, tasks: ScheduleTask[]);
-  run(signal: AbortSignal): Promise<void>;
-  getStatus(): SchedulerStatus;
-}
-```
+The scheduler does not implement persistent checkpoints. State is maintained in memory during service operation.
 
-### SchedulerStatus
+### Recovery Patterns
 
-```typescript
-interface SchedulerStatus {
-  tasks: TaskStatus[];
-  history: TaskRunHistory[];
-}
-
-interface TaskStatus {
-  name: string;
-  agentType: string;
-  message: string;
-  isRunning: boolean;
-  nextRun?: number;
-  lastRun?: number;
-}
-
-interface TaskRunHistory {
-  taskName: string;
-  startTime: number;
-  endTime?: number;
-  error?: string;
-}
-```
-
-## Configuration Schema
-
-The scheduler uses Zod for configuration validation:
-
-```typescript
-const SchedulerConfigSchema = z.object({
-  tasks: z.array(ScheduleTaskSchema)
-}).optional();
-
-const ScheduleTaskSchema = z.object({
-  name: z.string(),
-  agentType: z.string(),
-  every: z.string().optional(),
-  spaced: z.string().optional(),
-  once: z.boolean().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  on: z.string().optional(),
-  dayOfMonth: z.number().min(1).max(31).optional(),
-  noLongerThan: z.string().optional(),
-  several: z.boolean().optional(),
-  message: z.string(),
-});
-```
-
-## Time Intervals
-
-Supported time units:
-- `second`, `seconds`
-- `minute`, `minutes`
-- `hour`, `hours`
-- `day`, `days`
-
-Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours")
-
-## Days of Week
-
-Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
-
-Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
-
-## Task State Management
-
-The scheduler maintains detailed state for each task:
-
-- **nextRun**: Timestamp for next execution
-- **lastRun**: Timestamp of last execution
-- **isRunning**: Current execution status
-- **startTime**: When current run started
-- **maxRunTime**: Runtime limit for timeout detection
+On service restart, tasks are rescheduled based on their configuration. No historical state is preserved.
 
 ## Error Handling
 
-- **Runtime Timeout**: Tasks exceeding `noLongerThan` are logged and terminated
+- **Runtime Timeout**: Tasks exceeding `noLongerThan` are logged but not terminated
 - **Agent Errors**: Execution errors are captured in run history
 - **Configuration Validation**: Invalid configurations prevent service startup
-- **Graceful Shutdown**: Tasks complete before service termination
+- **Graceful Shutdown**: Service stops scheduling new tasks but existing tasks may continue running
 
 ## Monitoring and Logging
 
 - **Service Output**: Real-time logging of task scheduling and execution
-- **Run History**: Last 50 executions tracked with timing and error information
+- **Run History**: All executions tracked with timing and error information
 - **Status Monitoring**: Real-time task status through `/schedule` command
 - **Performance Tracking**: Runtime duration and timeout monitoring
 
@@ -327,15 +378,28 @@ The scheduler maintains detailed state for each task:
 - **Automatic Registration**: Plugin automatically registers services and commands
 - **Agent Integration**: Seamless integration with AgentManager for agent spawning
 - **Event Streaming**: Real-time event monitoring during agent execution
-- **State Persistence**: Task state maintained across service restarts
 - **Headless Operation**: All scheduled agents run in headless mode by default
 
-## Dependencies
+## Testing
 
-- `@tokenring-ai/app`: Application framework integration
-- `@tokenring-ai/agent`: Agent spawning and management
-- `zod`: Configuration validation
+Run tests with:
+
+```bash
+bun test
+```
+
+Run tests in watch mode:
+
+```bash
+bun test:watch
+```
+
+Run tests with coverage:
+
+```bash
+bun test:coverage
+```
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE](./LICENSE) file for details.

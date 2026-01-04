@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import chatCommands from "./chatCommands";
 import plugin from "./plugin";
 import SchedulerService from './SchedulerService';
-
-// No zod mock needed, use real zod
+import { AgentCommandService } from '@tokenring-ai/agent';
 
 // Mock the app ecosystem
 vi.mock('@tokenring-ai/app', () => ({
@@ -175,40 +174,54 @@ describe('Scheduler Integration Tests', () => {
 
   describe('plugin integration', () => {
     it('should integrate with app plugin system', async () => {
-      const validTasks = [
-        {
-          name: 'plugin-test-task',
-          agentType: 'plugin-agent',
-          every: '1 day',
-          message: 'Plugin test task',
+      
+      // Mock waitForService to call the callback with the agent command service
+      mockApp.waitForService.mockImplementation((serviceType, callback) => {
+        if (serviceType === AgentCommandService) {
+          callback(mockAgentCommandService);
         }
-      ];
+      });
       
-      mockApp.getConfigSlice.mockReturnValue({ tasks: validTasks });
-      
-      plugin.install(mockApp);
-      
-      // Verify plugin integration
-      expect(mockApp.getConfigSlice).toHaveBeenCalledWith('scheduler', expect.any(Object));
+      plugin.install(mockApp, {
+        scheduler: {
+          tasks: [
+            {
+              name: 'plugin-test-task',
+              agentType: 'plugin-agent',
+              every: '1 day',
+              message: 'Plugin test task',
+            }
+          ]
+        }
+      });
+
       expect(mockApp.waitForService).toHaveBeenCalledWith(
-        expect.any(Function),
+        AgentCommandService,
         expect.any(Function)
       );
       expect(mockApp.addServices).toHaveBeenCalled();
     });
 
     it('should register chat commands through plugin', async () => {
-      const validTasks = [
-        {
-          name: 'chat-test-task',
-          agentType: 'chat-agent',
-          every: '1 hour',
-          message: 'Chat test task',
+      // Mock waitForService to call the callback with the agent command service
+      mockApp.waitForService.mockImplementation((serviceType, callback) => {
+        if (serviceType === AgentCommandService) {
+          callback(mockAgentCommandService);
         }
-      ];
+      });
       
-      mockApp.getConfigSlice.mockReturnValue({ tasks: validTasks });
-      plugin.install(mockApp);
+      plugin.install(mockApp, {
+        scheduler: {
+          tasks: [
+            {
+              name: 'chat-test-task',
+              agentType: 'chat-agent',
+              every: '1 hour',
+              message: 'Chat test task',
+            }
+          ]
+        }
+      });
       
       // Get the callback and execute it
       const callback = mockApp.waitForService.mock.calls[0][1];

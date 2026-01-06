@@ -1,5 +1,6 @@
 import {AgentManager} from "@tokenring-ai/agent";
 import {AgentEventState} from "@tokenring-ai/agent/state/agentEventState";
+import {AgentExecutionState} from "@tokenring-ai/agent/state/agentExecutionState";
 import TokenRingApp from "@tokenring-ai/app";
 import {TokenRingService} from "@tokenring-ai/app/types";
 import waitForAbort from "@tokenring-ai/utility/promise/waitForAbort";
@@ -207,9 +208,9 @@ export default class SchedulerService implements TokenRingService {
 
     try {
       const agent = await agentManager.spawnAgent({ agentType: task.agentType, headless: true });
-      
-      const initialState = await agent.waitForState(AgentEventState, (state) => state.idle);
-      const eventCursor = initialState.getEventCursorFromCurrentPosition();
+
+      await agent.waitForState(AgentExecutionState, (state) => state.idle);
+      const eventCursor = agent.getState(AgentEventState).getEventCursorFromCurrentPosition();
       const requestId = agent.handleInput({ message: task.message });
 
       const unsubscribe = agent.subscribeState(AgentEventState, (state) => {

@@ -20,16 +20,11 @@ export function execute(remainder: string, agent: Agent): void {
     agent.infoLine(`**${task.name}** (${task.agentType})`);
     agent.infoLine(`  Message: ${task.message}`);
     agent.infoLine(`  Status: ${task.isRunning ? "Running" : "Idle"}`);
-    
-    if (task.nextRun) {
-      const nextDate = new Date(task.nextRun * 1000);
-      agent.infoLine(`  Next Run: ${nextDate.toLocaleString()}`);
-    }
-    
-    if (task.lastRun) {
-      const lastDate = new Date(task.lastRun * 1000);
-      agent.infoLine(`  Last Run: ${lastDate.toLocaleString()}`);
-    }
+    const nextDate = task.nextRun ? new Date(task.nextRun * 1000).toLocaleString() : "Task not scheduled to run today";
+    agent.infoLine(`  Next Run: ${nextDate}`);
+
+    const lastDate = task.lastRun ? new Date(task.lastRun * 1000).toLocaleString() : "Task has not run since application was started";
+    agent.infoLine(`  Last Run: ${lastDate}`);
     
     agent.infoLine("");
   }

@@ -5,7 +5,8 @@
   "dependencies": {
     "@tokenring-ai/app": "0.2.0",
     "@tokenring-ai/agent": "0.2.0",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "moment-timezone": "^0.6.0"
   },
   "exports": {
     ".": "./index.ts",

@@ -6,11 +6,11 @@ export default async function execute(remainder: string, agent: Agent) {
   const name = remainder.trim();
 
   if (!name) {
-    agent.errorLine("Usage: /scheduler remove <name>");
+    agent.errorMessage("Usage: /scheduler remove <name>");
     return;
   }
 
   scheduler.removeTask(name, agent);
 
-  agent.infoLine(`Task removed successfully`);
+  agent.infoMessage(`Task removed successfully`);
 }

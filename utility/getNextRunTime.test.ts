@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import moment from "moment-timezone";
-import { getNextRunTime } from "./getNextRunTime.ts";
-import type { ScheduledTask } from "../schema.ts";
+import {beforeEach, describe, expect, it} from "vitest";
+import type {ScheduledTask} from "../schema.ts";
+import {getNextRunTime} from "./getNextRunTime.ts";
 
 describe("getNextRunTime", () => {
   const timezone = "America/New_York";

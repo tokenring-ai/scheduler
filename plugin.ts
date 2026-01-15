@@ -9,7 +9,7 @@ import {SchedulerConfigSchema} from "./schema.ts";
 import tools from "./tools.ts";
 
 const packageConfigSchema = z.object({
-  scheduler: SchedulerConfigSchema.optional()
+  scheduler: SchedulerConfigSchema.prefault({})
 });
 
 export default {
@@ -17,15 +17,13 @@ export default {
   version: packageJSON.version,
   description: packageJSON.description,
   install(app, config) {
-    if (config.scheduler) {
-      app.waitForService(ChatService, chatService =>
-        chatService.addTools(packageJSON.name, tools)
-      );
-      app.waitForService(AgentCommandService, agentCommandService =>
-        agentCommandService.addAgentCommands(chatCommands)
-      );
-      app.addServices(new SchedulerService(app, config.scheduler));
-    }
+    app.waitForService(ChatService, chatService =>
+      chatService.addTools(packageJSON.name, tools)
+    );
+    app.waitForService(AgentCommandService, agentCommandService =>
+      agentCommandService.addAgentCommands(chatCommands)
+    );
+    app.addServices(new SchedulerService(app, config.scheduler));
   },
   config: packageConfigSchema
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;

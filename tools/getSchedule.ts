@@ -17,14 +17,14 @@ async function execute(
     return "No scheduled tasks";
   }
 
-  const taskList = [];
+  const taskList = [`The current date and time is ${new Date().toLocaleString()}, and the following tasks are scheduled`];
   for (const [taskName, task] of taskState.tasks.entries()) {
     const execEntry = executionState.tasks.get(taskName);
-    const nextRun = execEntry?.nextRunTime ? new Date(execEntry.nextRunTime).toLocaleString() : "Not scheduled";
+    const nextRun = execEntry?.nextRunTime ? new Date(execEntry.nextRunTime).toLocaleString() : "";
     const lastRun = task.lastRunTime ? new Date(task.lastRunTime).toLocaleString() : "Never";
     const status = execEntry?.status ?? "Not scheduled";
     
-    taskList.push(`${taskName} (${task.agentType}):
+    taskList.push(`${taskName} : 
   Message: ${task.message}
   Status: ${status}
   Next Run: ${nextRun}

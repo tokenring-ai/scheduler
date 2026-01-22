@@ -7,7 +7,7 @@ export default async function execute(remainder: string, agent: Agent) {
   const lines: string[] = ["=== Task Execution History ===\n"];
 
   for (const [taskName, task] of taskState.tasks.entries()) {
-    lines.push(`**${taskName}** (${task.agentType})`);
+    lines.push(`**${taskName}**`);
     const history = taskState.history.get(taskName);
     if (history && history.length > 0) {
       for (const run of history) {

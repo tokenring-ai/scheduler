@@ -11,18 +11,16 @@ export function getNextRunTime(task: ScheduledTask): number | null {
 
   let earliestRunTime: moment.Moment;
 
-  if (task.every) {
+  if (task.repeat) {
     // For "every" tasks: earliestRunTime = lastRunTime + interval
-    const interval = parseInterval(task.every);
+    const interval = parseInterval(task.repeat);
     if (!interval) return null;
 
     earliestRunTime = moment.tz(task.lastRunTime ? task.lastRunTime + interval * 1000 : now, tz);
-  } else if (task.once) {
+  } else {
     // If it has run before, we look at the next day. If not, we start from now.
     earliestRunTime = moment.tz(task.lastRunTime ? task.lastRunTime + 86400_000 : now, tz);
     if (task.lastRunTime) earliestRunTime.startOf('day');
-  } else {
-    return null;
   }
 
   // Walk through each day starting with the earliest run time
@@ -33,22 +31,22 @@ export function getNextRunTime(task: ScheduledTask): number | null {
     // Check if this day matches the day conditions
     if (!checkDayConditions(task, checkDay)) continue;
 
-    if (task.from) {
-      const [fromHour, fromMin] = task.from.split(':').map(Number);
-      const fromTime = checkDay.clone().hour(fromHour).minute(fromMin).second(0);
+    if (task.after) {
+      const [afterHour, afterMin] = task.after.split(':').map(Number);
+      const afterTime = checkDay.clone().hour(afterHour).minute(afterMin).second(0);
 
       // If current checkDay is before the 'from' time, move it to 'from' time
-      if (checkDay.isBefore(fromTime)) {
-        checkDay.hour(fromHour).minute(fromMin).second(0);
+      if (checkDay.isBefore(afterTime)) {
+        checkDay.hour(afterHour).minute(afterMin).second(0);
       }
     }
 
     // Check if candidate time is after "to" window
-    if (task.to) {
-      const [toHour, toMin] = task.to.split(':').map(Number);
-      const toTime = checkDay.clone().hour(toHour).minute(toMin).second(0);
+    if (task.before) {
+      const [beforeHour, beforeMin] = task.before.split(':').map(Number);
+      const beforeTime = checkDay.clone().hour(beforeHour).minute(beforeMin).second(0);
 
-      if (checkDay.isAfter(toTime)) {
+      if (checkDay.isAfter(beforeTime)) {
         continue; // Try next day
       }
     }

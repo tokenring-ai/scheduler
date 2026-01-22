@@ -3,6 +3,8 @@ const INTERVALS: Record<string, number> = {
   minute: 60, minutes: 60,
   hour: 3600, hours: 3600,
   day: 86400, days: 86400,
+  week: 86400 * 7, weeks: 86400 * 7,
+  month: 86400 * 31, months: 86400 * 31,
 };
 
 export function parseInterval(interval: string): number | null {

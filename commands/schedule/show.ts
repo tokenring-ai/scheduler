@@ -15,7 +15,7 @@ export default async function execute(remainder: string, agent: Agent) {
     const lastDate = task.lastRunTime ? new Date(task.lastRunTime).toLocaleString() : "Never";
 
     lines.push(
-      `**${taskName}** (${task.agentType})`,
+      `**${taskName}**`,
       indent([
         `Message: ${task.message}`,
         `Status: ${execEntry?.status ?? "Not scheduled"}`,

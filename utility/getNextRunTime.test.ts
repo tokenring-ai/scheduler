@@ -121,7 +121,7 @@ describe("getNextRunTime", () => {
       agentType: "test",
       message: "test",
       every: "1 hour",
-      on: "mon,wed,fri",
+      weekdays: "mon,wed,fri",
       timezone,
       lastRunTime: 0,
     };

@@ -33,7 +33,7 @@ describe("checkDayConditions", () => {
     const task: ScheduledTask = {
       agentType: "test",
       message: "test",
-      on: "mon,wed,fri",
+      weekdays: "mon,wed,fri",
       timezone,
     };
     const monday = moment().tz(timezone).day(1);
@@ -49,7 +49,7 @@ describe("checkDayConditions", () => {
       agentType: "test",
       message: "test",
       dayOfMonth: 15,
-      on: "mon",
+      weekdays: "mon",
       timezone,
       lastRunTime: 0,
     };

@@ -1,16 +1,12 @@
 import z from "zod";
 
 export const ScheduledTaskSchema = z.object({
-  agentType: z.string(),
-  every: z.string().optional(),
-  once: z.boolean().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  on: z.string().optional(),
+  repeat: z.string().optional(),
+  after: z.string().optional(),
+  before: z.string().optional(),
+  weekdays: z.string().optional(),
   dayOfMonth: z.number().min(1).max(31).optional(),
   lastRunTime: z.number().default(0),
-  noLongerThan: z.string().optional(),
-  several: z.boolean().optional(),
   timezone: z.string().optional(),
   message: z.string(),
 });
@@ -18,7 +14,7 @@ export const ScheduledTaskSchema = z.object({
 export type ScheduledTask = z.output<typeof ScheduledTaskSchema>
 
 export const SchedulerAgentConfigSchema = z.object({
-  autoStart: z.boolean().default(false),
+  autoStart: z.boolean().default(true),
   tasks: z.record(z.string(), ScheduledTaskSchema).default({})
 }).prefault({});
 

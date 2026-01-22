@@ -10,8 +10,13 @@ interface TaskRunHistory {
   message: string;
 }
 
-export class ScheduleTaskState implements AgentStateSlice {
+const serializationSchema = z.object({
+  tasks: z.any()
+});
+
+export class ScheduleTaskState implements AgentStateSlice<typeof serializationSchema> {
   name = "ScheduleTaskState";
+  serializationSchema = serializationSchema;
   tasks: Map<string,ScheduledTask>;
   history = new Map<string, TaskRunHistory[]>();
 
@@ -19,13 +24,13 @@ export class ScheduleTaskState implements AgentStateSlice {
     this.tasks = new Map(Object.entries(initialConfig.tasks));
   }
 
-  serialize(): object {
+  serialize(): z.output<typeof serializationSchema> {
     return {
       tasks: this.tasks,
     };
   }
 
-  deserialize(data: any): void {
+  deserialize(data: z.output<typeof serializationSchema>): void {
     this.tasks = data.tasks || [];
   }
 
@@ -33,4 +38,3 @@ export class ScheduleTaskState implements AgentStateSlice {
     return [`Tasks: ${this.tasks.size}`];
   }
 }
-

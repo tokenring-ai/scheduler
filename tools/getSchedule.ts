@@ -5,6 +5,7 @@ import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import {ScheduleTaskState} from "../state/scheduleTaskState.ts";
 
 const name = "scheduler_get_schedule";
+const displayName = "Scheduler/getSchedule";
 
 async function execute(
   {}: z.output<typeof inputSchema>,
@@ -39,5 +40,5 @@ const description = "Get the current schedule of all scheduled tasks with their 
 const inputSchema = z.object({});
 
 export default {
-  name, description, inputSchema, execute
+  name, displayName, description, inputSchema, execute
 } satisfies TokenRingToolDefinition<typeof inputSchema>;

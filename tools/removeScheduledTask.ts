@@ -4,6 +4,7 @@ import {z} from "zod";
 import SchedulerService from "../SchedulerService.ts";
 
 const name = "scheduler_remove_task";
+const displayName = "Scheduler/removeScheduledTask";
 
 async function execute(
   {taskName}: z.output<typeof inputSchema>,
@@ -23,5 +24,5 @@ const inputSchema = z.object({
 });
 
 export default {
-  name, description, inputSchema, execute
+  name, displayName, description, inputSchema, execute
 } satisfies TokenRingToolDefinition<typeof inputSchema>;

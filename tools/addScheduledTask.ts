@@ -7,6 +7,7 @@ import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import getSchedule from "./getSchedule.ts";
 
 const name = "add_scheduled_task";
+const displayName = "Scheduler/addScheduledTask";
 
 async function execute(
   {taskName, task}: z.output<typeof inputSchema>,
@@ -48,5 +49,5 @@ const inputSchema = z.object({
 const requiredContextHandlers = ["available-agents"];
 
 export default {
-  name, description, inputSchema, execute, requiredContextHandlers
+  name, displayName, description, inputSchema, execute, requiredContextHandlers
 } satisfies TokenRingToolDefinition<typeof inputSchema>;

@@ -2,8 +2,6 @@ import Agent from "@tokenring-ai/agent/Agent";
 import {TokenRingToolDefinition} from "@tokenring-ai/chat/schema";
 import {z} from "zod";
 import SchedulerService from "../SchedulerService.ts";
-import {ScheduledTaskSchema} from "../schema.ts";
-import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import getSchedule from "./getSchedule.ts";
 
 const name = "add_scheduled_task";

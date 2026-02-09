@@ -15,7 +15,7 @@ const serializationSchema = z.object({
 });
 
 export class ScheduleExecutionState implements AgentStateSlice<typeof serializationSchema> {
-  name = "ScheduleExecutionState";
+  readonly name = "ScheduleExecutionState";
   tasks = new Map<string, ExecutionScheduleEntry>
   autoStart: boolean;
   abortController: AbortController | null = null;

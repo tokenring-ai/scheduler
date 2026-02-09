@@ -11,7 +11,7 @@ import {getNextRunTime} from "./utility/getNextRunTime.ts";
 import isEmpty from "@tokenring-ai/utility/object/isEmpty";
 
 export default class SchedulerService implements TokenRingService {
-  name = "SchedulerService";
+  readonly name = "SchedulerService";
   description = "Schedules AI agents to run at specified intervals";
 
   constructor(private app: TokenRingApp, private options: z.output<typeof SchedulerConfigSchema>) {}

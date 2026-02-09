@@ -15,7 +15,7 @@ const serializationSchema = z.object({
 });
 
 export class ScheduleTaskState implements AgentStateSlice<typeof serializationSchema> {
-  name = "ScheduleTaskState";
+  readonly name = "ScheduleTaskState";
   serializationSchema = serializationSchema;
   tasks: Map<string,ScheduledTask>;
   history = new Map<string, TaskRunHistory[]>();

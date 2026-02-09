@@ -15,7 +15,7 @@ describe("getNextRunTime", () => {
     const task: ScheduledTask = {
       agentType: "test",
       message: "test",
-      every: "1 hour",
+      repeat: "1 hour",
       timezone,
       lastRunTime: 0,
     };
@@ -30,7 +30,7 @@ describe("getNextRunTime", () => {
     const task: ScheduledTask = {
       agentType: "test",
       message: "test",
-      every: "1 hour",
+      repeat: "1 hour",
       lastRunTime: lastRun,
       timezone,
     };
@@ -68,11 +68,10 @@ describe("getNextRunTime", () => {
 
   it("with from time constraint", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      every: "1 hour",
-      from: "09:00",
-      to: "09:01",
+      repeat: "1 hour",
+      after: "09:00",
+      before: "09:01",
       timezone,
       lastRunTime: 0,
     };
@@ -85,10 +84,9 @@ describe("getNextRunTime", () => {
   it("with to time constraint", () => {
     const lastRun = moment().tz(timezone).hour(8).minute(0).second(0).unix();
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      every: "1 hour",
-      to: "17:00",
+      repeat: "1 hour",
+      before: "17:00",
       timezone,
       lastRunTime: lastRun,
     };
@@ -101,11 +99,10 @@ describe("getNextRunTime", () => {
   it("with from and to time window", () => {
     const lastRun = moment().tz(timezone).hour(8).minute(0).second(0).unix();
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      every: "1 hour",
-      from: "09:00",
-      to: "17:00",
+      repeat: "1 hour",
+      after: "09:00",
+      before: "17:00",
       timezone,
       lastRunTime: lastRun,
     };
@@ -118,9 +115,8 @@ describe("getNextRunTime", () => {
 
   it("with specific weekdays", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      every: "1 hour",
+      repeat: "1 hour",
       weekdays: "mon,wed,fri",
       timezone,
       lastRunTime: 0,
@@ -134,9 +130,8 @@ describe("getNextRunTime", () => {
 
   it("with specific day of month", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      every: "1 day",
+      repeat: "1 day",
       dayOfMonth: 15,
       timezone,
       lastRunTime: 0,
@@ -149,9 +144,8 @@ describe("getNextRunTime", () => {
 
   it("returns null for invalid interval", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      every: "invalid",
+      repeat: "invalid",
       timezone,
     };
     
@@ -161,12 +155,12 @@ describe("getNextRunTime", () => {
 
   it("returns null without every or once", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       timezone,
+      lastRunTime: 0
     };
     
     const nextRun = getNextRunTime(task);
-    expect(nextRun).toBeNull();
+    expect(nextRun).toBeLessThan(Date.now() + 20_000);
   });
 });

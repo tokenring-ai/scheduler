@@ -33,6 +33,6 @@ describe("parseInterval", () => {
   });
 
   it("returns null for unknown unit", () => {
-    expect(parseInterval("5 weeks")).toBeNull();
+    expect(parseInterval("5 foos")).toBeNull();
   });
 });

@@ -57,12 +57,12 @@ The `agentDefaults` are merged with per-agent configuration, allowing global def
 
 ## Chat Commands
 
-### /schedule Command
+### /scheduler Command
 
 The scheduler provides comprehensive chat commands for management and monitoring.
 
 ```
-/schedule [start|stop|show|add|remove|history]
+/scheduler [start|stop|show|add|remove|history]
 ```
 
 **Subcommands:**
@@ -178,7 +178,7 @@ await agent.executeTool('add_scheduled_task', {
 });
 ```
 
-### remove_scheduled_task
+### scheduler_remove_task
 
 Remove a scheduled task by name.
 
@@ -193,7 +193,7 @@ Remove a scheduled task by name.
 **Example:**
 
 ```typescript
-await agent.executeTool('remove_scheduled_task', {
+await agent.executeTool('scheduler_remove_task', {
   taskName: "Daily Backup"
 });
 ```
@@ -277,6 +277,7 @@ interface ExecutionScheduleEntry {
   nextRunTime: number | null;
   status: 'pending' | 'running';
   abortController?: AbortController;
+  timer?: NodeJS.Timeout;
   startTime?: number;
 }
 ```
@@ -332,6 +333,8 @@ Supported time units:
 - `minute`, `minutes`
 - `hour`, `hours`
 - `day`, `days`
+- `week`, `weeks`
+- `month`, `months`
 
 Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours")
 
@@ -347,6 +350,73 @@ Use `after` and `before` to define time windows:
 Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
 
 Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
+
+### Timezone Support
+
+Use IANA timezone strings to schedule tasks in specific timezones:
+
+- `"America/New_York"`
+- `"Europe/London"`
+- `"Asia/Tokyo"`
+- `"UTC"`
+
+## Utility Functions
+
+The scheduler package provides several utility functions for time calculations:
+
+### parseInterval
+
+Parses interval strings into milliseconds.
+
+```typescript
+import { parseInterval } from "@tokenring-ai/scheduler/utility/parseInterval";
+
+// Returns 60000 (1 minute in milliseconds)
+const interval = parseInterval("1 minute");
+
+// Returns 3600000 (1 hour in milliseconds)
+const interval = parseInterval("1 hour");
+
+// Returns null for invalid formats
+const invalid = parseInterval("invalid");
+```
+
+### getNextRunTime
+
+Calculates the next run time for a scheduled task.
+
+```typescript
+import { getNextRunTime } from "@tokenring-ai/scheduler/utility/getNextRunTime";
+
+// For a task configured to run daily at 9:00 AM
+const task = {
+  message: "/chat Generate daily report",
+  repeat: "1 day",
+  after: "09:00"
+};
+
+const nextRun = getNextRunTime(task);
+// Returns timestamp for next scheduled run
+```
+
+### checkDayConditions
+
+Checks if a date matches day conditions for scheduling.
+
+```typescript
+import { checkDayConditions } from "@tokenring-ai/scheduler/utility/checkDayConditions";
+import moment from "moment-timezone";
+
+const task = {
+  weekdays: "mon wed fri",
+  dayOfMonth: 15
+};
+
+const now = moment.tz("America/New_York");
+
+// Check if today matches the day conditions
+const matches = checkDayConditions(task, now);
+```
 
 ## Examples
 
@@ -404,6 +474,16 @@ Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
 }
 ```
 
+### Run Every 2 Hours with Timezone
+
+```javascript
+{
+  message: "/chat Check database status",
+  repeat: "2 hours",
+  timezone: "UTC"
+}
+```
+
 ## State Management
 
 The scheduler maintains task state within the agent using two state slices:
@@ -420,6 +500,7 @@ Tracks runtime execution state:
 - `tasks`: Map of task name to ExecutionScheduleEntry
 - `autoStart`: Whether the scheduler should auto-start
 - `abortController`: Controls the scheduler loop
+- `timer`: Node.js timeout for scheduled tasks
 
 **State Persistence**: Task state is stored in the agent's state and persists across agent restarts if the agent's state is persisted.
 
@@ -429,13 +510,15 @@ Tracks runtime execution state:
 - **Agent Errors**: Execution errors are captured in run history with error message
 - **Configuration Validation**: Invalid configurations prevent agent attachment
 - **Graceful Shutdown**: Scheduler stops scheduling new tasks and aborts running tasks
+- **Task Not Found**: Remove operations throw clear error when task doesn't exist
 
 ## Monitoring and Logging
 
 - **Agent Output**: Real-time logging of task scheduling and execution through agent info/error lines
 - **Run History**: All executions tracked with timing and status information
-- **Status Monitoring**: Real-time task status through `/schedule show` command
+- **Status Monitoring**: Real-time task status through `/scheduler show` command
 - **Performance Tracking**: Runtime duration and time window monitoring
+- **Timer Management**: Automatic cleanup of timer references on task completion or removal
 
 ## Integration Features
 
@@ -444,6 +527,7 @@ Tracks runtime execution state:
 - **Event Streaming**: Real-time event monitoring during agent execution
 - **Headless Operation**: All scheduled agents run in headless mode by default
 - **State-Based**: Leverages agent state system for task and execution tracking
+- **Command Registration**: Registers `/scheduler` command with subcommand routing
 
 ## Testing
 

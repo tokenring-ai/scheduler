@@ -47,7 +47,7 @@ export default class SchedulerService implements TokenRingService {
       state.abortController = abortController;
     });
 
-    this.app.trackPromise(async () => {
+    this.app.trackPromise(this, async () => {
       try {
         await this.watchTasks(agent, abortController.signal);
         agent.infoMessage("Scheduler complete");

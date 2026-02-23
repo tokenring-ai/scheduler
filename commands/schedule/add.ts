@@ -1,9 +1,10 @@
 import Agent from "@tokenring-ai/agent/Agent";
+import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
 import SchedulerService from "../../SchedulerService.ts";
 import {ScheduledTaskSchema} from "../../schema.ts";
 import z from "zod";
 
-export default async function execute(remainder: string, agent: Agent) {
+export default async function execute(remainder: string, agent: Agent): Promise<string> {
   const scheduler = agent.requireServiceByType(SchedulerService);
 
   const result = await agent.askQuestion({
@@ -52,12 +53,10 @@ export default async function execute(remainder: string, agent: Agent) {
   });
 
   if (result === null) {
-    agent.errorMessage("Task creation cancelled");
-    return;
+    throw new CommandFailedError("Task creation cancelled");
   }
 
   const taskSpec = result["Task Specification"];
-
 
   const task: z.input<typeof ScheduledTaskSchema> = {
     message: taskSpec.message,
@@ -72,8 +71,8 @@ export default async function execute(remainder: string, agent: Agent) {
   try {
     const validated = ScheduledTaskSchema.parse(task);
     scheduler.addTask(taskSpec.name, validated, agent);
-    agent.infoMessage(`Task '${name}' added successfully`);
+    return `Task '${taskSpec.name}' added successfully`;
   } catch (error) {
-    agent.errorMessage("Invalid task configuration:", error as Error);
+    throw new CommandFailedError(`Invalid task configuration: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

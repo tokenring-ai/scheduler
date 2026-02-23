@@ -3,7 +3,7 @@ import indent from "@tokenring-ai/utility/string/indent";
 import {ScheduleExecutionState} from "../../state/scheduleExecutionState.ts";
 import {ScheduleTaskState} from "../../state/scheduleTaskState.ts";
 
-export default async function execute(remainder: string, agent: Agent) {
+export default async function execute(remainder: string, agent: Agent): Promise<string> {
   const taskState = agent.getState(ScheduleTaskState);
   const executionState = agent.getState(ScheduleExecutionState);
 
@@ -26,5 +26,5 @@ export default async function execute(remainder: string, agent: Agent) {
     );
   }
 
-  agent.infoMessage(lines.join("\n"));
+  return lines.join("\n");
 }

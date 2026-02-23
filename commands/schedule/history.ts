@@ -1,7 +1,7 @@
 import Agent from "@tokenring-ai/agent/Agent";
 import {ScheduleTaskState} from "../../state/scheduleTaskState.ts";
 
-export default async function execute(remainder: string, agent: Agent) {
+export default async function execute(remainder: string, agent: Agent): Promise<string> {
   const taskState = agent.getState(ScheduleTaskState);
 
   const lines: string[] = ["=== Task Execution History ===\n"];
@@ -12,11 +12,10 @@ export default async function execute(remainder: string, agent: Agent) {
     if (history && history.length > 0) {
       for (const run of history) {
         const startDate = new Date(run.startTime).toLocaleString();
-
         lines.push(`- [${startDate}] ${taskName} - ${run.status} (${Math.round(run.endTime - run.startTime)}s) ${run.message}`);
       }
     }
   }
 
-  agent.infoMessage(lines.join("\n"));
+  return lines.join("\n");
 }

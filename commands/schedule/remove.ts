@@ -1,16 +1,15 @@
 import Agent from "@tokenring-ai/agent/Agent";
+import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
 import SchedulerService from "../../SchedulerService.ts";
 
-export default async function execute(remainder: string, agent: Agent) {
+export default async function execute(remainder: string, agent: Agent): Promise<string> {
   const scheduler = agent.requireServiceByType(SchedulerService);
   const name = remainder.trim();
 
   if (!name) {
-    agent.errorMessage("Usage: /scheduler remove <name>");
-    return;
+    throw new CommandFailedError("Usage: /scheduler remove <name>");
   }
 
   scheduler.removeTask(name, agent);
-
-  agent.infoMessage(`Task removed successfully`);
+  return `Task removed successfully`;
 }

@@ -18,7 +18,7 @@ async function execute(
     after: task.after,
     repeat: task.repeat,
     timezone: task.timezone,
-    lastRunTime: Date.now(),
+    lastRunTime: 0,
     message: `${task.description}\n\nADDITIONAL CONTEXT:${task.context}`
   }, agent);
 

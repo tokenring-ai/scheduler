@@ -4,8 +4,8 @@ import {z} from "zod";
 import SchedulerService from "../SchedulerService.ts";
 import getSchedule from "./getSchedule.ts";
 
-const name = "add_scheduled_task";
-const displayName = "Scheduler/addScheduledTask";
+const name = "scheduler_add_task";
+const displayName = "Scheduler/add_task";
 
 async function execute(
   {taskName, task}: z.output<typeof inputSchema>,

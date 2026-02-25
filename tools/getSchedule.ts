@@ -5,7 +5,7 @@ import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import {ScheduleTaskState} from "../state/scheduleTaskState.ts";
 
 const name = "scheduler_get_schedule";
-const displayName = "Scheduler/getSchedule";
+const displayName = "Scheduler/get_schedule";
 
 async function execute(
   {}: z.output<typeof inputSchema>,

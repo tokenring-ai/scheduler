@@ -4,7 +4,7 @@ import {z} from "zod";
 import SchedulerService from "../SchedulerService.ts";
 
 const name = "scheduler_remove_task";
-const displayName = "Scheduler/removeScheduledTask";
+const displayName = "Scheduler/removeTask";
 
 async function execute(
   {taskName}: z.output<typeof inputSchema>,

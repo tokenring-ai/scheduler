@@ -35,6 +35,7 @@ Manage the scheduler service.
 - Last 50 agent execution runs with status and duration`;
 
 export default {
+  name: "schedule",
   description,
   execute,
   help,

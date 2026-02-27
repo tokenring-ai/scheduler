@@ -2,7 +2,7 @@ import {AgentCommandService} from "@tokenring-ai/agent";
 import {TokenRingPlugin} from "@tokenring-ai/app";
 import {ChatService} from "@tokenring-ai/chat";
 import {z} from "zod";
-import chatCommands from "./chatCommands.ts";
+import agentCommands from "./commands.ts";
 import packageJSON from './package.json' with {type: 'json'};
 import SchedulerService from "./SchedulerService.ts";
 import {SchedulerConfigSchema} from "./schema.ts";
@@ -21,7 +21,7 @@ export default {
       chatService.addTools(tools)
     );
     app.waitForService(AgentCommandService, agentCommandService =>
-      agentCommandService.addAgentCommands(chatCommands)
+      agentCommandService.addAgentCommands(agentCommands)
     );
     app.addServices(new SchedulerService(app, config.scheduler));
   },

@@ -46,13 +46,17 @@ export default class SchedulerService implements TokenRingService {
     agent.mutateState(ScheduleExecutionState, (state) => {
       state.abortController = abortController;
     });
+    const handleAbort = () => abortController.abort();
 
-    this.app.trackPromise(this, async () => {
+    agent.runBackgroundTask(async (signal) => {
+      signal.addEventListener("abort", handleAbort);
       try {
         await this.watchTasks(agent, abortController.signal);
         agent.infoMessage("Scheduler complete");
       } catch (error) {
         agent.errorMessage("Error while running scheduler: ", error as Error);
+      } finally {
+        signal.removeEventListener("abort", handleAbort);
       }
       agent.mutateState(ScheduleExecutionState, (state) => {
         state.abortController = null;

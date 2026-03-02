@@ -12,7 +12,204 @@ The Scheduler service runs within an AI agent to provide automated scheduling of
 bun install @tokenring-ai/scheduler
 ```
 
-## Usage
+## Features
+
+- **Flexible Scheduling**: Support for interval-based and time-based scheduling
+- **Time Window Control**: Define start and end times for task execution
+- **Day Conditions**: Schedule tasks on specific days of the week or month
+- **Timezone Support**: Full IANA timezone support for global scheduling
+- **Runtime Monitoring**: Real-time task status and execution history
+- **Interactive Task Management**: Chat commands for adding, removing, and monitoring tasks
+- **Programmatic API**: Tools for integrating scheduling into agent workflows
+- **State Persistence**: Task configurations persist across agent restarts
+- **Graceful Shutdown**: Clean task cancellation and state cleanup
+
+## Core Components/API
+
+### SchedulerService
+
+The core service that manages scheduled tasks within an agent.
+
+**Constructor:**
+
+```typescript
+constructor(app: TokenRingApp, options: z.output<typeof SchedulerConfigSchema>)
+```
+
+**Methods:**
+
+#### attach(agent: Agent): void
+
+Attaches the scheduler to an agent, initializing task and execution state. Merges configuration and optionally auto-starts the scheduler.
+
+#### runScheduler(agent: Agent): void
+
+Starts the scheduler loop for the given agent. Creates a background task that watches for task executions.
+
+#### stopScheduler(agent: Agent): void
+
+Stops the scheduler loop for the given agent by aborting the running scheduler.
+
+#### addTask(name: string, task: ScheduledTask, agent: Agent): void
+
+Adds a new scheduled task to the agent. If autoStart is enabled and the scheduler is not running, it will start automatically.
+
+#### removeTask(name: string, agent: Agent): void
+
+Removes a scheduled task from the agent, clearing any timers or running tasks.
+
+#### watchTasks(agent: Agent, signal: AbortSignal): Promise<void>
+
+Watches task state and schedules executions. Monitors for task changes and updates timers accordingly.
+
+#### runTask(name: string, task: ScheduledTask, agent: Agent): Promise<void>
+
+Executes a scheduled task by sending the task message to the agent and monitoring execution.
+
+### Tools
+
+#### scheduler_add_task
+
+Adds a new scheduled task to run an agent at specified intervals.
+
+**Input Schema:**
+
+```typescript
+{
+  taskName: string,
+  task: {
+    description: string,
+    context?: string,
+    repeat?: string,
+    after?: string,
+    before?: string,
+    timezone?: string
+  }
+}
+```
+
+**Example:**
+
+```typescript
+await agent.executeTool('scheduler_add_task', {
+  taskName: "Daily Backup",
+  task: {
+    description: "Run a full backup of all critical data. This includes user documents, database exports, and configuration files.",
+    context: "Backup should run after regular business hours to minimize system impact.",
+    repeat: "1 day",
+    after: "02:00",
+    before: "03:00",
+    timezone: "America/New_York"
+  }
+});
+```
+
+#### scheduler_remove_task
+
+Removes a scheduled task by name.
+
+**Input Schema:**
+
+```typescript
+{
+  taskName: string
+}
+```
+
+**Example:**
+
+```typescript
+await agent.executeTool('scheduler_remove_task', {
+  taskName: "Daily Backup"
+});
+```
+
+#### scheduler_get_schedule
+
+Gets the current schedule of all scheduled tasks with their status and next run times.
+
+**Input Schema:**
+
+```typescript
+{}
+```
+
+**Example:**
+
+```typescript
+const schedule = await agent.executeTool('scheduler_get_schedule', {});
+```
+
+**Returns:**
+
+```
+Scheduled Tasks:
+
+Daily Report : 
+  Message: /chat Generate daily report
+  Status: pending
+  Next Run: Mon, Jan 15, 2024, 9:00:00 AM
+  Last Run: Sun, Jan 14, 2024, 9:00:00 AM
+```
+
+### State Interfaces
+
+#### ScheduleTaskState
+
+Tracks configured tasks and their execution history:
+
+```typescript
+class ScheduleTaskState {
+  tasks: Map<string, ScheduledTask>;
+  history: Map<string, TaskRunHistory[]>;
+}
+```
+
+**Properties:**
+- `tasks`: Map of task name to ScheduledTask configuration
+- `history`: Map of task name to array of execution history entries
+
+#### ScheduleExecutionState
+
+Tracks runtime execution state:
+
+```typescript
+class ScheduleExecutionState {
+  tasks: Map<string, ExecutionScheduleEntry>;
+  autoStart: boolean;
+  abortController: AbortController | null;
+}
+```
+
+**Properties:**
+- `tasks`: Map of task name to execution schedule entry
+- `autoStart`: Whether the scheduler should auto-start
+- `abortController`: Controls the scheduler loop
+
+#### ExecutionScheduleEntry
+
+```typescript
+interface ExecutionScheduleEntry {
+  nextRunTime: number | null;
+  status: 'pending' | 'running';
+  abortController?: AbortController;
+  timer?: NodeJS.Timeout;
+  startTime?: number;
+}
+```
+
+#### TaskRunHistory
+
+```typescript
+interface TaskRunHistory {
+  startTime: number;
+  endTime: number;
+  status: 'completed' | 'failed';
+  message: string;
+}
+```
+
+## Usage Examples
 
 ### Basic Integration
 
@@ -29,16 +226,56 @@ const app = new TokenRingApp({
 app.install(scheduler);
 ```
 
-### Automatic Agent Attachment
+### Programmatic Task Management
 
-When an agent is created with scheduler configuration, the SchedulerService automatically attaches to it:
+```typescript
+// Add a scheduled task
+await agent.executeTool('scheduler_add_task', {
+  taskName: "Morning Briefing",
+  task: {
+    description: "Generate a morning briefing with news, weather, and schedule",
+    repeat: "1 day",
+    after: "07:00",
+    before: "08:00"
+  }
+});
 
-1. Validates configuration using Zod schemas
-2. Initializes task and execution state on the agent
-3. Optionally auto-starts the scheduler if configured
-4. Provides real-time task monitoring through chat commands
+// Get current schedule
+const schedule = await agent.executeTool('scheduler_get_schedule', {});
 
-## Plugin Configuration
+// Remove a task
+await agent.executeTool('scheduler_remove_task', {
+  taskName: "Morning Briefing"
+});
+```
+
+### Chat Command Management
+
+Use chat commands to manage scheduled tasks interactively:
+
+```bash
+# Start the scheduler
+/schedule start
+
+# Stop the scheduler
+/schedule stop
+
+# Show all scheduled tasks
+/schedule show
+
+# Add a new task interactively
+/schedule add
+
+# Remove a task
+/schedule remove Daily Report
+
+# View execution history
+/schedule history
+```
+
+## Configuration
+
+### Plugin Configuration
 
 The scheduler plugin is configured at the application level in `.tokenring/config.mjs`:
 
@@ -55,47 +292,11 @@ export default {
 
 The `agentDefaults` are merged with per-agent configuration, allowing global defaults while supporting agent-specific overrides.
 
-## Chat Commands
-
-### /scheduler Command
-
-The scheduler provides comprehensive chat commands for management and monitoring.
-
-```
-/scheduler [start|stop|show|add|remove|history]
-```
-
-**Subcommands:**
-
-- `start` - Start the scheduler
-- `stop` - Stop the scheduler
-- `show` - Display current schedule and running status
-- `history` - Display task execution history
-- `add` - Add a new task (interactive)
-- `remove <name>` - Remove a task by name
-
-**Example Output:**
-
-```
-=== Scheduled Tasks ===
-
-**Daily Report**
-  Message: /chat Generate daily report
-  Status: pending
-  Next Run: Mon, Jan 15, 2024, 9:00:00 AM
-  Last Run: Sun, Jan 14, 2024, 9:00:00 AM
-
-**Health Check**
-  Message: /chat Check system health
-  Status: running
-  Next Run: Mon, Jan 14, 2024, 2:30:00 PM
-```
-
-## Agent Configuration
+### Agent Configuration
 
 The scheduler is configured per-agent through the agent's configuration. Configuration is validated using Zod schemas.
 
-### Configuration Schema
+**Configuration Schema:**
 
 ```typescript
 const SchedulerAgentConfigSchema = z.object({
@@ -104,7 +305,7 @@ const SchedulerAgentConfigSchema = z.object({
 });
 ```
 
-### Configuration Example
+**Configuration Example:**
 
 Add a `scheduler` section to your agent configuration in `.tokenring/config.mjs`:
 
@@ -138,159 +339,97 @@ export default {
 };
 ```
 
-## Tools
+## Chat Commands
 
-The scheduler package provides three tools for programmatic task management:
+The scheduler provides comprehensive chat commands for management and monitoring.
 
-### add_scheduled_task
-
-Add a new scheduled task to run an agent at specified intervals.
-
-**Input Schema:**
-
-```typescript
-{
-  taskName: string,
-  task: {
-    description: string,
-    context?: string,
-    repeat?: string,
-    after?: string,
-    before?: string,
-    timezone?: string
-  }
-}
-```
-
-**Example:**
-
-```typescript
-await agent.executeTool('add_scheduled_task', {
-  taskName: "Daily Backup",
-  task: {
-    description: "Run a full backup of all critical data. This includes user documents, database exports, and configuration files. Ensure the backup completes within 30 minutes.",
-    context: "Backup should run after regular business hours to minimize system impact. Include checksum verification for data integrity.",
-    repeat: "1 day",
-    after: "02:00",
-    before: "03:00",
-    timezone: "America/New_York"
-  }
-});
-```
-
-### scheduler_remove_task
-
-Remove a scheduled task by name.
-
-**Input Schema:**
-
-```typescript
-{
-  taskName: string
-}
-```
-
-**Example:**
-
-```typescript
-await agent.executeTool('scheduler_remove_task', {
-  taskName: "Daily Backup"
-});
-```
-
-### scheduler_get_schedule
-
-Get the current schedule of all scheduled tasks with their status and next run times.
-
-**Input Schema:**
-
-```typescript
-{}
-```
-
-**Example:**
-
-```typescript
-const schedule = await agent.executeTool('scheduler_get_schedule', {});
-```
-
-**Returns:**
+### /schedule Command
 
 ```
-Scheduled Tasks:
+/schedule [start|stop|show|add|remove|history]
+```
 
-Daily Report:
+**Subcommands:**
+
+- `start` - Start the scheduler
+- `stop` - Stop the scheduler
+- `show` - Display current schedule and running status
+- `history` - Display task execution history
+- `add` - Add a new task (interactive)
+- `remove <name>` - Remove a task by name
+
+**Example Output:**
+
+```
+=== Scheduled Tasks ===
+
+**Daily Report**
   Message: /chat Generate daily report
   Status: pending
   Next Run: Mon, Jan 15, 2024, 9:00:00 AM
   Last Run: Sun, Jan 14, 2024, 9:00:00 AM
+
+**Health Check**
+  Message: /chat Check system health
+  Status: running
+  Next Run: Mon, Jan 14, 2024, 2:30:00 PM
 ```
 
-## Services
+### /schedule add
 
-### SchedulerService
+Interactively add a new scheduled task. Prompts for name, instructions, repeat interval, and optional time window.
 
-The SchedulerService runs within an agent and provides automated scheduling for spawning other agents.
+**Example:**
 
-**Constructor:**
-
-```typescript
-constructor(app: TokenRingApp, options: z.output<typeof SchedulerConfigSchema>)
+```
+/schedule add
 ```
 
-**Methods:**
+The command will prompt for:
+- Task Name
+- Instructions for the agent
+- How often to run (Once, Every 5 minutes, Every hour, Every day)
+- Earliest time of day (optional)
+- Latest time of day (optional)
 
-#### attach(agent: Agent): void
+### /schedule remove
 
-Attaches the scheduler to an agent, initializing task and execution state.
+Remove a scheduled task by name.
 
-#### runScheduler(agent: Agent): void
+**Example:**
 
-Starts the scheduler loop for the given agent.
-
-#### stopScheduler(agent: Agent): void
-
-Stops the scheduler loop for the given agent.
-
-#### addTask(name: string, task: ScheduledTask, agent: Agent): void
-
-Adds a new scheduled task to the agent.
-
-#### removeTask(name: string, agent: Agent): void
-
-Removes a scheduled task from the agent.
-
-#### watchTasks(agent: Agent, signal: AbortSignal): Promise<void>
-
-Watches task state and schedules executions.
-
-#### runTask(name: string, task: ScheduledTask, agent: Agent): Promise<void>
-
-Executes a scheduled task by spawning the configured agent.
-
-### State Interfaces
-
-#### ExecutionScheduleEntry
-
-```typescript
-interface ExecutionScheduleEntry {
-  nextRunTime: number | null;
-  status: 'pending' | 'running';
-  abortController?: AbortController;
-  timer?: NodeJS.Timeout;
-  startTime?: number;
-}
+```
+/schedule remove myTask
 ```
 
-#### TaskRunHistory
+### /schedule show
 
-```typescript
-interface TaskRunHistory {
-  startTime: number;
-  endTime: number;
-  status: 'completed' | 'failed';
-  message: string;
-}
+Display all current scheduled tasks with their next and last run times.
+
+**Example:**
+
+```
+/schedule show
+```
+
+### /schedule history
+
+Display the execution history for all scheduled tasks, including status and duration.
+
+**Example:**
+
+```
+/schedule history
+```
+
+**Output Format:**
+
+```
+=== Task Execution History ===
+
+**Daily Report**
+- [Mon, Jan 15, 2024, 9:00:00 AM] Daily Report - completed (120s) Task completed successfully
+- [Sun, Jan 14, 2024, 9:00:00 AM] Daily Report - failed (45s) Task failed with error: ...
 ```
 
 ## ScheduleTask Schema
@@ -321,7 +460,7 @@ const ScheduledTaskSchema = z.object({
 | `weekdays`     | `string`  | No       | Days of week (e.g., "mon tue wed thu fri", "sat sun")               |
 | `dayOfMonth`   | `number`  | No       | Specific day of month (1-31)                                        |
 | `lastRunTime`  | `number`  | No       | Timestamp of last execution (default: 0)                            |
-| `timezone`     | `string`  | No       | IANA timezone string for the time (e.g., 'America/New_York', 'UTC') |
+| `timezone`     | `string`  | No       | IANA timezone string (e.g., 'America/New_York', 'UTC')              |
 
 ## Schedule Configuration
 
@@ -342,14 +481,18 @@ Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours")
 
 Use `after` and `before` to define time windows:
 
-- `after`: Time to start running (HH:MM format)
-- `before`: Time to stop running (HH:MM format)
+- `after`: Time to start running (HH:MM format, 24-hour clock)
+- `before`: Time to stop running (HH:MM format, 24-hour clock)
 
 ### Days of Week
 
 Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
 
 Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
+
+### Day of Month
+
+Specify a specific day of the month (1-31) for monthly tasks.
 
 ### Timezone Support
 
@@ -366,15 +509,15 @@ The scheduler package provides several utility functions for time calculations:
 
 ### parseInterval
 
-Parses interval strings into milliseconds.
+Parses interval strings into seconds.
 
 ```typescript
 import { parseInterval } from "@tokenring-ai/scheduler/utility/parseInterval";
 
-// Returns 60000 (1 minute in milliseconds)
+// Returns 60 (1 minute in seconds)
 const interval = parseInterval("1 minute");
 
-// Returns 3600000 (1 hour in milliseconds)
+// Returns 3600 (1 hour in seconds)
 const interval = parseInterval("1 hour");
 
 // Returns null for invalid formats
@@ -418,71 +561,33 @@ const now = moment.tz("America/New_York");
 const matches = checkDayConditions(task, now);
 ```
 
-## Examples
+## Integration
 
-### Run Every Hour During Business Hours
+### Plugin Registration
 
-```javascript
-{
-  message: "/chat Sync data",
-  repeat: "1 hour",
-  after: "09:00",
-  before: "17:00",
-  weekdays: "mon tue wed thu fri"
-}
+The scheduler is registered as a TokenRing plugin that automatically:
+
+1. Registers tools with the ChatService
+2. Registers commands with the AgentCommandService
+3. Creates and attaches SchedulerService to agents
+
+### Service Registration
+
+```typescript
+import SchedulerService from "@tokenring-ai/scheduler/SchedulerService";
+
+// The service is automatically registered when the plugin is installed
+// No manual registration required
 ```
 
-### Run Once Daily at Specific Time
+### Agent Attachment
 
-```javascript
-{
-  message: "/chat Generate morning briefing",
-  repeat: "1 day",
-  after: "08:00"
-}
-```
+When an agent is created with scheduler configuration:
 
-### Run Every 30 Minutes with Timezone
-
-```javascript
-{
-  message: "/chat Quick system check",
-  repeat: "30 minutes",
-  after: "00:00",
-  before: "23:59",
-  timezone: "America/New_York"
-}
-```
-
-### Run on Specific Days of Week
-
-```javascript
-{
-  message: "/chat Generate monthly report",
-  repeat: "1 week",
-  weekdays: "sun"
-}
-```
-
-### Run on Specific Day of Month
-
-```javascript
-{
-  message: "/chat Generate monthly report",
-  repeat: "1 month",
-  dayOfMonth: 1
-}
-```
-
-### Run Every 2 Hours with Timezone
-
-```javascript
-{
-  message: "/chat Check database status",
-  repeat: "2 hours",
-  timezone: "UTC"
-}
-```
+1. Validates configuration using Zod schemas
+2. Initializes task and execution state on the agent
+3. Optionally auto-starts the scheduler if configured
+4. Provides real-time task monitoring through chat commands
 
 ## State Management
 
@@ -500,34 +605,37 @@ Tracks runtime execution state:
 - `tasks`: Map of task name to ExecutionScheduleEntry
 - `autoStart`: Whether the scheduler should auto-start
 - `abortController`: Controls the scheduler loop
-- `timer`: Node.js timeout for scheduled tasks
 
-**State Persistence**: Task state is stored in the agent's state and persists across agent restarts if the agent's state is persisted.
+**State Persistence**: Task configurations are serialized and persist across agent restarts. Note that execution state (running tasks, timers) is not persisted and will be reset on restart.
 
 ## Error Handling
 
-- **Runtime Timeout**: Tasks may exceed configured time windows but are not terminated
-- **Agent Errors**: Execution errors are captured in run history with error message
+- **Task Not Found**: Remove operations throw `Error` when task doesn't exist
 - **Configuration Validation**: Invalid configurations prevent agent attachment
 - **Graceful Shutdown**: Scheduler stops scheduling new tasks and aborts running tasks
-- **Task Not Found**: Remove operations throw clear error when task doesn't exist
+- **Runtime Errors**: Execution errors are captured in run history with error message
+- **Cancelled Operations**: Interactive task creation throws `CommandFailedError` when cancelled
 
-## Monitoring and Logging
+## Best Practices
 
-- **Agent Output**: Real-time logging of task scheduling and execution through agent info/error lines
-- **Run History**: All executions tracked with timing and status information
-- **Status Monitoring**: Real-time task status through `/scheduler show` command
-- **Performance Tracking**: Runtime duration and time window monitoring
-- **Timer Management**: Automatic cleanup of timer references on task completion or removal
+### Task Naming
 
-## Integration Features
+- Use descriptive, unique task names
+- Avoid names with special characters or spaces
+- Consider using prefixes for related tasks (e.g., "backup_daily", "backup_weekly")
 
-- **Automatic Attachment**: Plugin automatically attaches to agents with scheduler configuration
-- **Agent Spawning**: Seamless integration with AgentManager for spawning scheduled agents
-- **Event Streaming**: Real-time event monitoring during agent execution
-- **Headless Operation**: All scheduled agents run in headless mode by default
-- **State-Based**: Leverages agent state system for task and execution tracking
-- **Command Registration**: Registers `/scheduler` command with subcommand routing
+### Scheduling
+
+- Set appropriate time windows to avoid overlapping executions
+- Use timezones to ensure consistent scheduling across regions
+- Consider system load when scheduling frequent tasks
+- Test task configurations before deploying to production
+
+### Monitoring
+
+- Regularly check execution history for failed tasks
+- Use `/schedule show` to verify task status
+- Monitor agent logs for scheduler warnings and errors
 
 ## Testing
 
@@ -548,6 +656,22 @@ Run tests with coverage:
 ```bash
 bun test:coverage
 ```
+
+## Dependencies
+
+- `@tokenring-ai/app`: 0.2.0
+- `@tokenring-ai/agent`: 0.2.0
+- `@tokenring-ai/chat`: 0.2.0
+- `@tokenring-ai/rpc`: 0.2.0
+- `@tokenring-ai/utility`: 0.2.0
+- `zod`: ^4.3.6
+- `moment-timezone`: ^0.6.0
+
+## Related Components
+
+- `@tokenring-ai/agent`: Core agent system that the scheduler attaches to
+- `@tokenring-ai/chat`: Chat service that provides tool integration
+- `@tokenring-ai/app`: Base application framework for plugin registration
 
 ## License
 

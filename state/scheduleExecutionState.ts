@@ -1,4 +1,4 @@
-import type {AgentStateSlice} from "@tokenring-ai/agent/types";
+import {AgentStateSlice} from "@tokenring-ai/agent/types";
 import {z} from "zod";
 import type {SchedulerAgentConfigSchema} from "../schema.ts";
 
@@ -14,14 +14,13 @@ const serializationSchema = z.object({
   autoStart: z.boolean()
 });
 
-export class ScheduleExecutionState implements AgentStateSlice<typeof serializationSchema> {
-  readonly name = "ScheduleExecutionState";
+export class ScheduleExecutionState extends AgentStateSlice<typeof serializationSchema> {
   tasks = new Map<string, ExecutionScheduleEntry>
   autoStart: boolean;
   abortController: AbortController | null = null;
-  serializationSchema = serializationSchema;
 
   constructor(readonly initialConfig: z.output<typeof SchedulerAgentConfigSchema>) {
+    super("ScheduleExecutionState", serializationSchema);
     this.autoStart = initialConfig.autoStart;
   }
 

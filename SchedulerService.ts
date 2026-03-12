@@ -178,7 +178,10 @@ export default class SchedulerService implements TokenRingService {
     try {
       const eventCursor = agent.getState(AgentEventState).getEventCursorFromCurrentPosition();
 
-      const requestId = agent.handleInput({ message: task.message });
+      const requestId = agent.handleInput({
+        from: `Scheduled task ${name}`,
+        message: task.message
+      });
 
       for await (const state of agent.subscribeStateAsync(AgentEventState, signal)) {
         for (const event of state.yieldEventsByCursor(eventCursor)) {

@@ -186,7 +186,7 @@ export default class SchedulerService implements TokenRingService {
       for await (const state of agent.subscribeStateAsync(AgentEventState, signal)) {
         for (const event of state.yieldEventsByCursor(eventCursor)) {
           switch (event.type) {
-            case 'input.handled':
+            case 'agent.response':
               if (event.requestId === requestId) {
                 this.handleTaskFinished(name, event.status === 'success' ? 'completed' : 'failed', event.message, agent);
                 agent!.config.idleTimeout = 3600_000;

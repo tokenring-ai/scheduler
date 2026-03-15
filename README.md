@@ -14,7 +14,7 @@ bun install @tokenring-ai/scheduler
 
 ## Features
 
-- **Flexible Scheduling**: Support for interval-based and one-time scheduling
+- **Flexible Scheduling**: Support for interval-based, one-time, and repeating scheduling
 - **Time Window Control**: Define start and end times for task execution
 - **Day Conditions**: Schedule tasks on specific days of the week or month
 - **Timezone Support**: Full IANA timezone support for global scheduling
@@ -23,6 +23,7 @@ bun install @tokenring-ai/scheduler
 - **Programmatic API**: Tools for integrating scheduling into agent workflows
 - **State Persistence**: Task configurations persist across agent restarts
 - **Graceful Shutdown**: Clean task cancellation and state cleanup
+- **Loop Commands**: Quick scheduling of repeated prompts via `/loop` command
 
 ## Core Components/API
 
@@ -289,6 +290,10 @@ Use chat commands to manage scheduled tasks interactively:
 
 # View execution history
 /schedule history
+
+# Schedule a repeated prompt
+/loop 5m check if the deployment finished
+/loop check the build every 2 hours
 ```
 
 ## Configuration
@@ -299,7 +304,7 @@ The scheduler plugin is configured at the application level in `.tokenring/confi
 
 ```javascript
 export default {
-  scheduler: {
+  scheduler: {\
     agentDefaults: {
       autoStart: true,
       tasks: {}
@@ -409,14 +414,14 @@ The command will prompt for:
 - **Task Name**: Unique identifier for the task
 - **Instructions for the agent**: The message to send to the agent when the task runs
 - **How often to run**: One of:
-  - Once (runs only one time)
+  - Once (runs only one time, no repeat)
   - Every 5 minutes
   - Every hour
   - Every day
 - **Earliest time of day**: Optional start time (hh:mm, 24-hour clock)
 - **Latest time of day**: Optional end time (hh:mm, 24-hour clock)
 
-**Note:** If "Once" is selected, the `repeat` field is omitted from the task configuration.
+**Note:** If "Once" is selected, the task is scheduled to run once at the specified time window without repetition.
 
 ### /schedule remove
 
@@ -471,6 +476,43 @@ Display the execution history for all scheduled tasks, including status and dura
 - [Mon, Jan 15, 2024, 9:00:00 AM] Daily Report - completed (120s) Task completed successfully
 - [Sun, Jan 14, 2024, 9:00:00 AM] Daily Report - failed (45s) Task failed with error: ...
 ```
+
+### /loop
+
+Schedule a prompt to run repeatedly in the current session. This is a quick way to schedule repeated tasks without using the full `/schedule add` interface.
+
+**Usage:**
+
+```
+/loop [interval] <prompt>
+/loop <prompt> every <interval>
+```
+
+If no interval is provided, the prompt runs every 10 minutes.
+
+**Examples:**
+
+```bash
+# Run every 5 minutes
+/loop 5m check if the deployment finished
+
+# Run every 2 hours
+/loop check the build every 2 hours
+
+# Run every 20 minutes (default format)
+/loop /review-pr 1234 every 20m
+
+# Run every 10 minutes (default interval)
+/loop monitor the logs
+```
+
+**Supported Intervals:**
+- Seconds: `s`, `sec`, `secs`, `second`, `seconds` (rounded up to minutes)
+- Minutes: `m`, `min`, `mins`, `minute`, `minutes`
+- Hours: `h`, `hr`, `hrs`, `hour`, `hours`
+- Days: `d`, `day`, `days`
+
+**Note:** Seconds are rounded up to the nearest minute since the scheduler operates on minute granularity. A task name is automatically generated (e.g., `loop-abc123def`).
 
 ## ScheduleTask Schema
 
@@ -635,6 +677,39 @@ const matches = checkDayConditions(task, now);
 - Checks if current day of week is in `weekdays` list (if specified)
 - Returns `true` if both conditions match (or if no conditions specified)
 
+### parseLoopCommand
+
+Parses `/loop` command syntax into structured task configuration.
+
+**Location:** `@tokenring-ai/scheduler/utility/parseLoopCommand`
+
+```typescript
+import { parseLoopCommand } from "@tokenring-ai/scheduler/utility/parseLoopCommand";
+
+// Parse leading interval format
+const result1 = parseLoopCommand("5m check deployment");
+// { prompt: "check deployment", repeat: "5 minutes", displayInterval: "5 minutes" }
+
+// Parse trailing "every" format
+const result2 = parseLoopCommand("check build every 2 hours");
+// { prompt: "check build", repeat: "2 hours", displayInterval: "2 hours" }
+
+// Parse default interval (10 minutes)
+const result3 = parseLoopCommand("monitor logs");
+// { prompt: "monitor logs", repeat: "10 minutes", displayInterval: "10 minutes" }
+
+// Parse seconds (rounded up to minutes)
+const result4 = parseLoopCommand("30s ping server");
+// { prompt: "ping server", repeat: "1 minute", displayInterval: "1 minute", note: "Rounded 30 seconds up to 1 minute..." }
+```
+
+**Behavior:**
+- Supports leading interval format: `<interval> <prompt>`
+- Supports trailing "every" format: `<prompt> every <interval>`
+- Defaults to 10 minutes if no interval specified
+- Rounds seconds up to the nearest minute
+- Returns `null` for invalid input
+
 ## Integration
 
 ### Plugin Registration
@@ -701,6 +776,7 @@ Tracks runtime execution state:
 - **Cancelled Operations**: Interactive task creation throws `CommandFailedError` when cancelled (e.g., user cancels form)
 - **Missing Task Name**: `/schedule remove` throws `CommandFailedError` if no name provided
 - **Task Exited Without Reason**: If task execution completes without proper event handling, marked as failed with "Task exited without any reason given"
+- **Invalid Loop Command**: `/loop` throws `CommandFailedError` if command syntax is invalid
 
 ## Best Practices
 
@@ -740,6 +816,13 @@ Tracks runtime execution state:
 - Plan for scheduler restart behavior (use `/schedule start` if needed)
 - Verify task configurations after agent restarts
 
+### Loop Command Usage
+
+- Use `/loop` for quick, temporary repeated tasks
+- Use `/schedule add` for permanent, configurable tasks
+- Remember that loop tasks are auto-generated and may be harder to manage
+- Use `/schedule show` to see all running tasks including loops
+
 ## Testing
 
 Run tests with:
@@ -764,6 +847,7 @@ bun test:coverage
 - `utility/getNextRunTime.test.ts` - Tests for next run time calculation
 - `utility/parseInterval.test.ts` - Tests for interval parsing
 - `utility/checkDayConditions.test.ts` - Tests for day condition checking
+- `utility/parseLoopCommand.test.ts` - Tests for loop command parsing
 
 ## Dependencies
 
@@ -776,7 +860,7 @@ bun test:coverage
 - `moment-timezone`: ^0.6.0
 
 **Dev Dependencies:**
-- `vitest`: ^4.0.18
+- `vitest`: ^4.1.0
 - `typescript`: ^5.9.3
 
 ## Related Components

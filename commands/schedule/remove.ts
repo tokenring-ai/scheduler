@@ -1,22 +1,30 @@
-import Agent from "@tokenring-ai/agent/Agent";
+import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
-import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import SchedulerService from "../../SchedulerService.ts";
+
+const inputSchema = {
+  args: {},
+  positionals: [{
+    name: "name",
+    description: "Task name",
+    required: true,
+  }],
+  allowAttachments: false,
+} as const satisfies AgentCommandInputSchema;
 
 export default {
   name: "schedule remove",
   description: "Remove a scheduled task",
-  help: `# /schedule remove <name>
-
-Remove a scheduled task by name.
+  help: `Remove a scheduled task by name.
 
 ## Example
 
 /schedule remove myTask`,
-  execute: async (remainder: string, agent: Agent): Promise<string> => {
-    const name = remainder.trim();
+  inputSchema,
+  execute: async ({positionals, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
+    const name = positionals.name;
     if (!name) throw new CommandFailedError("Usage: /scheduler remove <name>");
     agent.requireServiceByType(SchedulerService).removeTask(name, agent);
     return `Task removed successfully`;
   },
-} satisfies TokenRingAgentCommand;
+} satisfies TokenRingAgentCommand<typeof inputSchema>;

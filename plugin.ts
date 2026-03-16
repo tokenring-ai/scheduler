@@ -21,7 +21,7 @@ export default {
       chatService.addTools(tools)
     );
     app.waitForService(AgentCommandService, agentCommandService =>
-      agentCommandService.addAgentCommands(agentCommands)
+      agentCommandService.addAgentCommands([...agentCommands])
     );
     app.addServices(new SchedulerService(app, config.scheduler));
   },

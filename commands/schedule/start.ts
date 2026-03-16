@@ -1,19 +1,19 @@
-import Agent from "@tokenring-ai/agent/Agent";
-import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import SchedulerService from "../../SchedulerService.ts";
+
+const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
 export default {
   name: "schedule start",
   description: "Start the scheduler",
-  help: `# /schedule start
-
-Start the scheduler service.
+  help: `Start the scheduler service.
 
 ## Example
 
 /schedule start`,
-  execute: async (_remainder: string, agent: Agent): Promise<string> => {
+  inputSchema,
+  execute: async ({agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
     agent.requireServiceByType(SchedulerService).runScheduler(agent);
     return "Scheduler started";
   },
-} satisfies TokenRingAgentCommand;
+} satisfies TokenRingAgentCommand<typeof inputSchema>;

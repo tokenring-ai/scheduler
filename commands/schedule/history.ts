@@ -17,7 +17,8 @@ async function execute(_remainder: string, agent: Agent): Promise<string> {
   return lines.join("\n");
 }
 
-export default { name: "schedule history", description: "/schedule history - Show task execution history", help: `# /schedule history
+export default {
+  name: "schedule history", description: "Show task execution history", help: `# /schedule history
 
 Display the execution history for all scheduled tasks, including status and duration.
 

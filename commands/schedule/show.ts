@@ -19,7 +19,8 @@ async function execute(_remainder: string, agent: Agent): Promise<string> {
   return lines.join("\n");
 }
 
-export default { name: "schedule show", description: "/schedule show - Show scheduled tasks", help: `# /schedule show
+export default {
+  name: "schedule show", description: "Show scheduled tasks", help: `# /schedule show
 
 Display all current scheduled tasks with their next and last run times.
 

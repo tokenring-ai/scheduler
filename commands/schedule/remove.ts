@@ -5,7 +5,7 @@ import SchedulerService from "../../SchedulerService.ts";
 
 export default {
   name: "schedule remove",
-  description: "/schedule remove - Remove a scheduled task",
+  description: "Remove a scheduled task",
   help: `# /schedule remove <name>
 
 Remove a scheduled task by name.

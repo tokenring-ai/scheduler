@@ -1,9 +1,9 @@
 import Agent from "@tokenring-ai/agent/Agent";
 import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
 import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import z from "zod";
 import SchedulerService from "../../SchedulerService.ts";
 import {ScheduledTaskSchema} from "../../schema.ts";
-import z from "zod";
 
 async function execute(remainder: string, agent: Agent): Promise<string> {
   const scheduler = agent.requireServiceByType(SchedulerService);
@@ -45,7 +45,8 @@ async function execute(remainder: string, agent: Agent): Promise<string> {
   }
 }
 
-export default { name: "schedule add", description: "/schedule add - Add a scheduled task", help: `# /schedule add
+export default {
+  name: "schedule add", description: "Add a scheduled task", help: `# /schedule add
 
 Interactively add a new scheduled task. Prompts for name, instructions, repeat interval, and optional time window.
 

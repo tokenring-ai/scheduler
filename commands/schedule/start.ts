@@ -4,7 +4,7 @@ import SchedulerService from "../../SchedulerService.ts";
 
 export default {
   name: "schedule start",
-  description: "/schedule start - Start the scheduler",
+  description: "Start the scheduler",
   help: `# /schedule start
 
 Start the scheduler service.

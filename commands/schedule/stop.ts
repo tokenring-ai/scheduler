@@ -4,7 +4,7 @@ import SchedulerService from "../../SchedulerService.ts";
 
 export default {
   name: "schedule stop",
-  description: "/schedule stop - Stop the scheduler",
+  description: "Stop the scheduler",
   help: `# /schedule stop
 
 Stop the scheduler service.

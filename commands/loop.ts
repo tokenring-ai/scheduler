@@ -43,7 +43,7 @@ async function execute(remainder: string, agent: Agent): Promise<string> {
 
 export default {
   name: "loop",
-  description: "/loop - Schedule a prompt to run repeatedly",
+  description: "Schedule a prompt to run repeatedly",
   help: `# /loop
 
 Schedule a prompt to run repeatedly in the current session.

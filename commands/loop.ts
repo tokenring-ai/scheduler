@@ -1,18 +1,12 @@
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
+import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import SchedulerService from "../SchedulerService.ts";
 import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import {parseLoopCommand} from "../utility/parseLoopCommand.ts";
 
 const inputSchema = {
   args: {},
-  positionals: [{
-    name: "definition",
-    description: "Interval and prompt, e.g. 5m check the build",
-    required: true,
-    greedy: true,
-  }],
-  allowAttachments: false,
+  remainder: {name: "definition", description: "Interval and prompt, e.g. 5m check the build", required: true}
 } as const satisfies AgentCommandInputSchema;
 
 function createLoopTaskName(): string {
@@ -36,8 +30,8 @@ If no interval is provided, the prompt runs every 10 minutes.
 /loop 5m check if the deployment finished
 /loop check the build every 2 hours`,
   inputSchema,
-  execute: async ({positionals, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
-    const parsed = parseLoopCommand(positionals.definition);
+  execute: async ({remainder, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
+    const parsed = parseLoopCommand(remainder);
     if (!parsed) {
       throw new CommandFailedError("Usage: /loop [interval] <prompt> or /loop <prompt> every <interval>");
     }

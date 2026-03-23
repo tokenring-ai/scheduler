@@ -8,7 +8,6 @@ describe("checkDayConditions", () => {
 
   it("returns true when no conditions specified", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       timezone,
     };
@@ -18,7 +17,6 @@ describe("checkDayConditions", () => {
 
   it("checks dayOfMonth", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       dayOfMonth: 15,
       timezone,
@@ -29,9 +27,8 @@ describe("checkDayConditions", () => {
     expect(checkDayConditions(task, day20)).toBe(false);
   });
 
-  it("checks weekdays with on property", () => {
+  it("checks weekdays", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       weekdays: "mon,wed,fri",
       timezone,
@@ -46,7 +43,6 @@ describe("checkDayConditions", () => {
 
   it("checks both dayOfMonth and weekday", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       dayOfMonth: 15,
       weekdays: "mon",

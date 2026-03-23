@@ -13,7 +13,6 @@ describe("getNextRunTime", () => {
 
   it("every interval without lastRunTime", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       repeat: "1 hour",
       timezone,
@@ -28,7 +27,6 @@ describe("getNextRunTime", () => {
   it("every interval with lastRunTime", () => {
     const lastRun = now - 1800_000; // 30 minutes ago
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
       repeat: "1 hour",
       lastRunTime: lastRun,
@@ -42,9 +40,8 @@ describe("getNextRunTime", () => {
 
   it("once without lastRunTime", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      once: true,
+      repeat: "1 hour",
       timezone,
       lastRunTime: 0,
     };
@@ -55,9 +52,8 @@ describe("getNextRunTime", () => {
 
   it("once with lastRunTime schedules next day", () => {
     const task: ScheduledTask = {
-      agentType: "test",
       message: "test",
-      once: true,
+      repeat: "1 hour",
       lastRunTime: now - 3600,
       timezone,
     };
@@ -153,7 +149,7 @@ describe("getNextRunTime", () => {
     expect(nextRun).toBeNull();
   });
 
-  it("returns null without every or once", () => {
+  it("returns null without repeat or valid configuration", () => {
     const task: ScheduledTask = {
       message: "test",
       timezone,

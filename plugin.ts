@@ -3,7 +3,7 @@ import {TokenRingPlugin} from "@tokenring-ai/app";
 import {ChatService} from "@tokenring-ai/chat";
 import {z} from "zod";
 import agentCommands from "./commands.ts";
-import packageJSON from './package.json' with {type: 'json'};
+import packageJSON from "./package.json" with {type: "json"};
 import SchedulerService from "./SchedulerService.ts";
 import {SchedulerConfigSchema} from "./schema.ts";
 import tools from "./tools.ts";

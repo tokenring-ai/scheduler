@@ -225,6 +225,6 @@ export default class SchedulerService implements TokenRingService {
         status,
         message
       });
-    })
+    });
   }
 }

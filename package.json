@@ -1,6 +1,6 @@
 {
   "name": "@tokenring-ai/scheduler",
-  "description": "Service for scheduling AI agents to run at specified intervals",
+  "description": "Cron-like service for triggering agent actions at specific intervals.",
   "version": "0.2.0",
   "dependencies": {
     "@tokenring-ai/app": "0.2.0",

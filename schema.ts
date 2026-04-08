@@ -21,7 +21,3 @@ export const SchedulerAgentConfigSchema = z.object({
 export const SchedulerConfigSchema = z.object({
   agentDefaults: SchedulerAgentConfigSchema
 });
-
-export type SchedulerAgentConfig = {
-  scheduler: z.input<typeof SchedulerAgentConfigSchema>
-};

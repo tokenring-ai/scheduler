@@ -17,7 +17,7 @@ export default class SchedulerService implements TokenRingService {
   constructor(private app: TokenRingApp, private options: z.output<typeof SchedulerConfigSchema>) {}
 
   attach(agent: Agent): void {
-    const config = deepMerge(this.options, agent.getAgentConfigSlice('scheduler', SchedulerAgentConfigSchema));
+    const config = deepMerge(this.options.agentDefaults, agent.getAgentConfigSlice('scheduler', SchedulerAgentConfigSchema));
 
     agent.initializeState(ScheduleTaskState, config);
     agent.initializeState(ScheduleExecutionState, config);

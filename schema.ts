@@ -11,13 +11,15 @@ export const ScheduledTaskSchema = z.object({
   message: z.string(),
 });
 
-export type ScheduledTask = z.output<typeof ScheduledTaskSchema>
+export type ScheduledTask = z.output<typeof ScheduledTaskSchema>;
 
-export const SchedulerAgentConfigSchema = z.object({
-  autoStart: z.boolean().default(true),
-  tasks: z.record(z.string(), ScheduledTaskSchema).default({})
-}).prefault({});
+export const SchedulerAgentConfigSchema = z
+  .object({
+    autoStart: z.boolean().default(true),
+    tasks: z.record(z.string(), ScheduledTaskSchema).default({}),
+  })
+  .prefault({});
 
 export const SchedulerConfigSchema = z.object({
-  agentDefaults: SchedulerAgentConfigSchema
+  agentDefaults: SchedulerAgentConfigSchema,
 });

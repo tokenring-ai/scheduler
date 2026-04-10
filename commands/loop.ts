@@ -1,12 +1,16 @@
 import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand,} from "@tokenring-ai/agent/types";
 import SchedulerService from "../SchedulerService.ts";
 import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import {parseLoopCommand} from "../utility/parseLoopCommand.ts";
 
 const inputSchema = {
   args: {},
-  remainder: {name: "definition", description: "Interval and prompt, e.g. 5m check the build", required: true}
+  remainder: {
+    name: "definition",
+    description: "Interval and prompt, e.g. 5m check the build",
+    required: true,
+  },
 } as const satisfies AgentCommandInputSchema;
 
 function createLoopTaskName(): string {
@@ -30,20 +34,29 @@ If no interval is provided, the prompt runs every 10 minutes.
 /loop 5m check if the deployment finished
 /loop check the build every 2 hours`,
   inputSchema,
-  execute: async ({remainder, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
+  execute: ({
+              remainder,
+              agent,
+            }: AgentCommandInputType<typeof inputSchema>): string => {
     const parsed = parseLoopCommand(remainder);
     if (!parsed) {
-      throw new CommandFailedError("Usage: /loop [interval] <prompt> or /loop <prompt> every <interval>");
+      throw new CommandFailedError(
+        "Usage: /loop [interval] <prompt> or /loop <prompt> every <interval>",
+      );
     }
 
     const scheduler = agent.requireServiceByType(SchedulerService);
     const taskName = createLoopTaskName();
 
-    scheduler.addTask(taskName, {
-      message: parsed.prompt,
-      repeat: parsed.repeat,
-      lastRunTime: Date.now(),
-    }, agent);
+    scheduler.addTask(
+      taskName,
+      {
+        message: parsed.prompt,
+        repeat: parsed.repeat,
+        lastRunTime: Date.now(),
+      },
+      agent,
+    );
 
     const executionState = agent.getState(ScheduleExecutionState);
     if (!executionState.abortController) {
@@ -60,5 +73,5 @@ If no interval is provided, the prompt runs every 10 minutes.
     }
 
     return lines.join("\n");
-  }
+  },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

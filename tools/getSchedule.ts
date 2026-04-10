@@ -1,5 +1,5 @@
-import Agent from "@tokenring-ai/agent/Agent";
-import {TokenRingToolDefinition} from "@tokenring-ai/chat/schema";
+import type Agent from "@tokenring-ai/agent/Agent";
+import type {TokenRingToolDefinition} from "@tokenring-ai/chat/schema";
 import {z} from "zod";
 import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import {ScheduleTaskState} from "../state/scheduleTaskState.ts";
@@ -7,10 +7,10 @@ import {ScheduleTaskState} from "../state/scheduleTaskState.ts";
 const name = "scheduler_get_schedule";
 const displayName = "Scheduler/get_schedule";
 
-async function execute(
-  {}: z.output<typeof inputSchema>,
-  agent: Agent
-): Promise<string> {
+function execute(
+  _args: z.output<typeof inputSchema>,
+  agent: Agent,
+): string {
   const taskState = agent.getState(ScheduleTaskState);
   const executionState = agent.getState(ScheduleExecutionState);
 
@@ -18,13 +18,19 @@ async function execute(
     return "No scheduled tasks";
   }
 
-  const taskList = [`The current date and time is ${new Date().toLocaleString()}, and the following tasks are scheduled`];
+  const taskList = [
+    `The current date and time is ${new Date().toLocaleString()}, and the following tasks are scheduled`,
+  ];
   for (const [taskName, task] of taskState.tasks.entries()) {
     const execEntry = executionState.tasks.get(taskName);
-    const nextRun = execEntry?.nextRunTime ? new Date(execEntry.nextRunTime).toLocaleString() : "";
-    const lastRun = task.lastRunTime ? new Date(task.lastRunTime).toLocaleString() : "Never";
+    const nextRun = execEntry?.nextRunTime
+      ? new Date(execEntry.nextRunTime).toLocaleString()
+      : "";
+    const lastRun = task.lastRunTime
+      ? new Date(task.lastRunTime).toLocaleString()
+      : "Never";
     const status = execEntry?.status ?? "Not scheduled";
-    
+
     taskList.push(`${taskName} : 
   Message: ${task.message}
   Status: ${status}
@@ -32,13 +38,18 @@ async function execute(
   Last Run: ${lastRun}`);
   }
 
-  return `Scheduled Tasks:\n\n${taskList.join('\n\n')}`;
+  return `Scheduled Tasks:\n\n${taskList.join("\n\n")}`;
 }
 
-const description = "Get the current schedule of all scheduled tasks with their status and next run times";
+const description =
+  "Get the current schedule of all scheduled tasks with their status and next run times";
 
 const inputSchema = z.object({});
 
 export default {
-  name, displayName, description, inputSchema, execute
+  name,
+  displayName,
+  description,
+  inputSchema,
+  execute,
 } satisfies TokenRingToolDefinition<typeof inputSchema>;

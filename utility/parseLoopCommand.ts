@@ -6,14 +6,22 @@ export interface ParsedLoopCommand {
 }
 
 const DEFAULT_INTERVAL = "10 minutes";
-const LOOP_INTERVAL_PATTERN = "(\\d+)\\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)";
+const LOOP_INTERVAL_PATTERN =
+  "(\\d+)\\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)";
 
-function formatInterval(value: number, unit: "minute" | "hour" | "day"): string {
+function formatInterval(
+  value: number,
+  unit: "minute" | "hour" | "day",
+): string {
   return `${value} ${unit}${value === 1 ? "" : "s"}`;
 }
 
-function normalizeLoopInterval(rawInterval: string): Omit<ParsedLoopCommand, "prompt"> | null {
-  const match = rawInterval.trim().match(new RegExp(`^${LOOP_INTERVAL_PATTERN}$`, "i"));
+function normalizeLoopInterval(
+  rawInterval: string,
+): Omit<ParsedLoopCommand, "prompt"> | null {
+  const match = rawInterval
+    .trim()
+    .match(new RegExp(`^${LOOP_INTERVAL_PATTERN}$`, "i"));
   if (!match) return null;
 
   const value = Number.parseInt(match[1], 10);
@@ -26,7 +34,7 @@ function normalizeLoopInterval(rawInterval: string): Omit<ParsedLoopCommand, "pr
     return {
       repeat: formatInterval(roundedMinutes, "minute"),
       displayInterval: formatInterval(roundedMinutes, "minute"),
-      note: `Rounded ${value} second${value === 1 ? "" : "s"} up to ${formatInterval(roundedMinutes, "minute")} to match minute-based scheduling.`
+      note: `Rounded ${value} second${value === 1 ? "" : "s"} up to ${formatInterval(roundedMinutes, "minute")} to match minute-based scheduling.`,
     };
   }
 
@@ -59,9 +67,13 @@ export function parseLoopCommand(input: string): ParsedLoopCommand | null {
   if (!trimmed) return null;
   if (normalizeLoopInterval(trimmed)) return null;
 
-  const leadingMatch = trimmed.match(new RegExp(`^${LOOP_INTERVAL_PATTERN}\\s+([\\s\\S]+)$`, "i"));
+  const leadingMatch = trimmed.match(
+    new RegExp(`^${LOOP_INTERVAL_PATTERN}\\s+([\\s\\S]+)$`, "i"),
+  );
   if (leadingMatch) {
-    const parsedInterval = normalizeLoopInterval(`${leadingMatch[1]} ${leadingMatch[2]}`);
+    const parsedInterval = normalizeLoopInterval(
+      `${leadingMatch[1]} ${leadingMatch[2]}`,
+    );
     const prompt = leadingMatch[3].trim();
     if (!parsedInterval || !prompt) return null;
 
@@ -71,10 +83,14 @@ export function parseLoopCommand(input: string): ParsedLoopCommand | null {
     };
   }
 
-  const trailingMatch = trimmed.match(new RegExp(`^([\\s\\S]+?)\\s+every\\s+${LOOP_INTERVAL_PATTERN}$`, "i"));
+  const trailingMatch = trimmed.match(
+    new RegExp(`^([\\s\\S]+?)\\s+every\\s+${LOOP_INTERVAL_PATTERN}$`, "i"),
+  );
   if (trailingMatch) {
     const prompt = trailingMatch[1].trim();
-    const parsedInterval = normalizeLoopInterval(`${trailingMatch[2]} ${trailingMatch[3]}`);
+    const parsedInterval = normalizeLoopInterval(
+      `${trailingMatch[2]} ${trailingMatch[3]}`,
+    );
     if (!parsedInterval || !prompt) return null;
 
     return {

@@ -1,5 +1,5 @@
 import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand,} from "@tokenring-ai/agent/types";
+import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import SchedulerService from "../SchedulerService.ts";
 import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
 import {parseLoopCommand} from "../utility/parseLoopCommand.ts";

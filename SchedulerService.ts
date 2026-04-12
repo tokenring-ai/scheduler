@@ -5,7 +5,7 @@ import type {TokenRingService} from "@tokenring-ai/app/types";
 import deepMerge from "@tokenring-ai/utility/object/deepMerge";
 import isEmpty from "@tokenring-ai/utility/object/isEmpty";
 import type {z} from "zod";
-import {type ScheduledTask, SchedulerAgentConfigSchema, type SchedulerConfigSchema,} from "./schema.ts";
+import {type ScheduledTask, SchedulerAgentConfigSchema, type SchedulerConfigSchema} from "./schema.ts";
 import {ScheduleExecutionState} from "./state/scheduleExecutionState.ts";
 import {ScheduleTaskState} from "./state/scheduleTaskState.ts";
 import {getNextRunTime} from "./utility/getNextRunTime.ts";

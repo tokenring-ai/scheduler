@@ -78,20 +78,24 @@ constructor(app: TokenRingApp, options: z.output<typeof SchedulerConfigSchema>)
 Attaches the scheduler to an agent, initializing task and execution state. Merges configuration from app-level defaults with agent-specific configuration using deep merge. If `autoStart` is enabled and tasks exist, the scheduler will start automatically.
 
 **Parameters:**
+
 - `agent`: The agent to attach to
 
 #### runScheduler(agent: Agent): void
 
 Starts the scheduler loop for the given agent. Creates a background task that watches for task executions. The scheduler will only start if:
+
 - No scheduler is already running (checks for existing `abortController`)
 - At least one task is configured (checks `ScheduleTaskState.tasks`)
 
 Sets up abort handling and cleanup. Logs warnings if scheduler is already running or no tasks are found.
 
 **Parameters:**
+
 - `agent`: The agent to run the scheduler for
 
 **Behavior:**
+
 - Creates an `AbortController` for managing the scheduler lifecycle
 - Runs a background task that watches for `ScheduleTaskState` changes
 - Manages execution state in `ScheduleExecutionState`
@@ -102,6 +106,7 @@ Sets up abort handling and cleanup. Logs warnings if scheduler is already runnin
 Stops the scheduler loop for the given agent by aborting the running scheduler. Logs a warning if the scheduler is not running.
 
 **Parameters:**
+
 - `agent`: The agent to stop the scheduler for
 
 #### addTask(name: string, task: ScheduledTask, agent: Agent): void
@@ -109,6 +114,7 @@ Stops the scheduler loop for the given agent by aborting the running scheduler. 
 Adds a new scheduled task to the agent. If `autoStart` is enabled and the scheduler is not running, it will start automatically.
 
 **Parameters:**
+
 - `name`: Unique task name
 - `task`: Task configuration
 - `agent`: The agent to add the task to
@@ -118,6 +124,7 @@ Adds a new scheduled task to the agent. If `autoStart` is enabled and the schedu
 Removes a scheduled task from the agent, clearing any timers or running tasks. Throws `Error` if task not found.
 
 **Parameters:**
+
 - `name`: Task name to remove
 - `agent`: The agent to remove the task from
 
@@ -128,10 +135,12 @@ Removes a scheduled task from the agent, clearing any timers or running tasks. T
 Watches task state and schedules executions. Monitors for `ScheduleTaskState` changes and updates timers accordingly. Uses async iteration to subscribe to state changes.
 
 **Parameters:**
+
 - `agent`: The agent to watch tasks for
 - `signal`: AbortSignal for cancellation
 
 **Behavior:**
+
 - Iterates over `ScheduleTaskState` changes
 - Calculates next run times using `getNextRunTime`
 - Updates execution state with timers
@@ -142,11 +151,13 @@ Watches task state and schedules executions. Monitors for `ScheduleTaskState` ch
 Executes a scheduled task by sending the task message to the agent and monitoring execution. Tracks execution state and records history.
 
 **Parameters:**
+
 - `name`: Task name
 - `task`: Task configuration
 - `agent`: The agent to run the task on
 
 **Behavior:**
+
 - Creates an `AbortController` for task execution
 - Sends task message to agent via `handleInput`
 - Monitors `AgentEventState` for completion
@@ -209,6 +220,7 @@ await agent.executeTool('scheduler_add_task', {
 ```
 
 **Note:** The tool combines `description` and `context` into the task message with the format:
+
 ```
 {description}
 
@@ -280,6 +292,7 @@ Tracks configured tasks and their execution history.
 **Location:** `@tokenring-ai/scheduler/state/scheduleTaskState`
 
 **Properties:**
+
 - `tasks`: `Map<string, ScheduledTask>` - Configured tasks
 - `history`: `Map<string, TaskRunHistory[]>` - Execution history (not persisted)
 
@@ -292,6 +305,7 @@ Tracks runtime execution state.
 **Location:** `@tokenring-ai/scheduler/state/scheduleExecutionState`
 
 **Properties:**
+
 - `tasks`: `Map<string, ExecutionScheduleEntry>` - Active execution entries
 - `autoStart`: `boolean` - Whether the scheduler should auto-start
 - `abortController`: `AbortController | null` - Controls the scheduler loop
@@ -512,6 +526,7 @@ export default {
 **Configuration Merging:**
 
 The `agentDefaults` are merged with per-agent configuration using deep merge, allowing:
+
 - Global defaults that apply to all agents
 - Agent-specific overrides for individual agents
 - Flexible configuration at multiple levels
@@ -572,6 +587,7 @@ Interactively add a new scheduled task. Prompts for name, instructions, repeat i
 ```
 
 The command will prompt for:
+
 - **Task Name**: Unique identifier for the task
 - **Instructions for the agent**: The message to send to the agent when the task runs
 - **How often to run**: One of:
@@ -668,6 +684,7 @@ If no interval is provided, the prompt runs every 10 minutes.
 ```
 
 **Supported Intervals:**
+
 - Seconds: `s`, `sec`, `secs`, `second`, `seconds` (rounded up to minutes)
 - Minutes: `m`, `min`, `mins`, `minute`, `minutes`
 - Hours: `h`, `hr`, `hrs`, `hour`, `hours`
@@ -785,6 +802,7 @@ const invalid = parseInterval("invalid");
 ```
 
 **Supported Units:**
+
 - `second`/`seconds`: 1 second
 - `minute`/`minutes`: 60 seconds
 - `hour`/`hours`: 3600 seconds
@@ -824,6 +842,7 @@ const nextRun = getNextRunTime(task);
 ```
 
 **Behavior:**
+
 - For tasks with `repeat`: Calculates next run time based on `lastRunTime + interval`
 - For one-time tasks (no `repeat`): Calculates next run time from today/tomorrow
 - Respects `after` and `before` time windows
@@ -862,6 +881,7 @@ const matches = checkDayConditions(task, now);
 ```
 
 **Behavior:**
+
 - Checks if `dayOfMonth` matches (if specified)
 - Checks if current day of week is in `weekdays` list (if specified)
 - Returns `true` if both conditions match (or if no conditions specified)
@@ -909,6 +929,7 @@ const result4 = parseLoopCommand("30s ping server");
 ```
 
 **Behavior:**
+
 - Supports leading interval format: `<interval> <prompt>`
 - Supports trailing "every" format: `<prompt> every <interval>`
 - Defaults to 10 minutes if no interval specified
@@ -916,6 +937,7 @@ const result4 = parseLoopCommand("30s ping server");
 - Returns `null` for invalid input
 
 **Return Value:**
+
 - `prompt`: The prompt/text to execute
 - `repeat`: Standardized interval string (e.g., "5 minutes", "2 hours")
 - `displayInterval`: Human-readable interval for display
@@ -985,6 +1007,7 @@ The scheduler maintains task state within the agent using two state slices:
 ### ScheduleTaskState
 
 Tracks configured tasks and their execution history:
+
 - `tasks`: Map of task name to ScheduledTask configuration
 - `history`: Map of task name to array of TaskRunHistory entries
 
@@ -993,6 +1016,7 @@ Tracks configured tasks and their execution history:
 ### ScheduleExecutionState
 
 Tracks runtime execution state:
+
 - `tasks`: Map of task name to ExecutionScheduleEntry
 - `autoStart`: Whether the scheduler should auto-start
 - `abortController`: Controls the scheduler loop
@@ -1000,6 +1024,7 @@ Tracks runtime execution state:
 **Persistence:** Only `autoStart` is serialized and persisted. Runtime state (running tasks, timers) is not persisted and will be reset on restart.
 
 **State Restoration Pattern:**
+
 ```typescript
 // On agent restart, task configurations are restored from serialization
 // The scheduler can be manually started with /schedule start

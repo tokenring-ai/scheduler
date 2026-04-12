@@ -1,5 +1,5 @@
 import type Agent from "@tokenring-ai/agent/Agent";
-import type {TokenRingToolDefinition} from "@tokenring-ai/chat/schema";
+import type {TokenRingToolDefinition, } from "@tokenring-ai/chat/schema";
 import {z} from "zod";
 import SchedulerService from "../SchedulerService.ts";
 
@@ -13,6 +13,7 @@ function execute(
   const scheduler = agent.requireServiceByType(SchedulerService);
 
   scheduler.removeTask(taskName, agent);
+
 
   return `Scheduled task '${taskName}' removed successfully`;
 }

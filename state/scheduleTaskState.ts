@@ -1,7 +1,7 @@
 import {AgentStateSlice} from "@tokenring-ai/agent/types";
 import {z} from "zod";
 
-import {type ScheduledTask, ScheduledTaskSchema, type SchedulerAgentConfigSchema,} from "../schema.ts";
+import {type ScheduledTask, ScheduledTaskSchema, type SchedulerAgentConfigSchema} from "../schema.ts";
 
 interface TaskRunHistory {
   startTime: number;

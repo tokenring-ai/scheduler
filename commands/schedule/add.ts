@@ -75,7 +75,7 @@ export default {
     try {
       scheduler.addTask(taskSpec.name, ScheduledTaskSchema.parse(task), agent);
       return `Task '${taskSpec.name}' added successfully`;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new CommandFailedError(
         `Invalid task configuration: ${error instanceof Error ? error.message : String(error)}`,
       );

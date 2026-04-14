@@ -64,7 +64,7 @@ export default class SchedulerService implements TokenRingService {
       try {
         await this.watchTasks(agent, abortController.signal);
         agent.infoMessage("Scheduler complete");
-      } catch (error) {
+      } catch (error: unknown) {
         agent.errorMessage("Error while running scheduler: ", error as Error);
       } finally {
         signal.removeEventListener("abort", handleAbort);
@@ -246,11 +246,11 @@ export default class SchedulerService implements TokenRingService {
           agent,
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.handleTaskFinished(
         name,
         "failed",
-        `Task failed with error: ${error}`,
+        `Task failed with error: ${error as Error}`,
         agent,
       );
     }

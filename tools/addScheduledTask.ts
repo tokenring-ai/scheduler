@@ -7,10 +7,10 @@ import getSchedule from "./getSchedule.ts";
 const name = "scheduler_add_task";
 const displayName = "Scheduler/add_task";
 
-async function execute(
+function execute(
   {taskName, task}: z.output<typeof inputSchema>,
   agent: Agent,
-): Promise<string> {
+) {
   const scheduler = agent.requireServiceByType(SchedulerService);
 
   scheduler.addTask(
@@ -28,7 +28,7 @@ async function execute(
 
   return (
     `Scheduled task '${taskName}' added successfully.\n\n` +
-    (await getSchedule.execute({}, agent))
+    (getSchedule.execute({}, agent))
   );
 }
 

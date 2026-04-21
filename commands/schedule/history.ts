@@ -1,5 +1,5 @@
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
-import {ScheduleTaskState} from "../../state/scheduleTaskState.ts";
+import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
+import { ScheduleTaskState } from "../../state/scheduleTaskState.ts";
 
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
@@ -12,9 +12,7 @@ export default {
 
 /schedule history`,
   inputSchema,
-  execute: ({
-              agent,
-            }: AgentCommandInputType<typeof inputSchema>): string => {
+  execute: ({ agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const taskState = agent.getState(ScheduleTaskState);
     const lines = ["=== Task Execution History ===\n"];
     for (const [taskName] of taskState.tasks.entries()) {

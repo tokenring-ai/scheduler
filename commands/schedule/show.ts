@@ -1,7 +1,7 @@
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
 import indent from "@tokenring-ai/utility/string/indent";
-import {ScheduleExecutionState} from "../../state/scheduleExecutionState.ts";
-import {ScheduleTaskState} from "../../state/scheduleTaskState.ts";
+import { ScheduleExecutionState } from "../../state/scheduleExecutionState.ts";
+import { ScheduleTaskState } from "../../state/scheduleTaskState.ts";
 
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
@@ -14,9 +14,7 @@ export default {
 
 /schedule show`,
   inputSchema,
-  execute: ({
-              agent,
-            }: AgentCommandInputType<typeof inputSchema>): string => {
+  execute: ({ agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const taskState = agent.getState(ScheduleTaskState);
     const executionState = agent.getState(ScheduleExecutionState);
     const lines = ["=== Scheduled Tasks ===\n"];

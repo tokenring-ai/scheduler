@@ -1,14 +1,14 @@
 import type Agent from "@tokenring-ai/agent/Agent";
-import {AgentEventState} from "@tokenring-ai/agent/state/agentEventState";
+import { AgentEventState } from "@tokenring-ai/agent/state/agentEventState";
 import type TokenRingApp from "@tokenring-ai/app";
-import type {TokenRingService} from "@tokenring-ai/app/types";
+import type { TokenRingService } from "@tokenring-ai/app/types";
 import deepMerge from "@tokenring-ai/utility/object/deepMerge";
 import isEmpty from "@tokenring-ai/utility/object/isEmpty";
-import type {z} from "zod";
-import {type ScheduledTask, SchedulerAgentConfigSchema, type SchedulerConfigSchema} from "./schema.ts";
-import {ScheduleExecutionState} from "./state/scheduleExecutionState.ts";
-import {ScheduleTaskState} from "./state/scheduleTaskState.ts";
-import {getNextRunTime} from "./utility/getNextRunTime.ts";
+import type { z } from "zod";
+import { type ScheduledTask, SchedulerAgentConfigSchema, type SchedulerConfigSchema } from "./schema.ts";
+import { ScheduleExecutionState } from "./state/scheduleExecutionState.ts";
+import { ScheduleTaskState } from "./state/scheduleTaskState.ts";
+import { getNextRunTime } from "./utility/getNextRunTime.ts";
 
 export default class SchedulerService implements TokenRingService {
   readonly name = "SchedulerService";
@@ -17,14 +17,10 @@ export default class SchedulerService implements TokenRingService {
   constructor(
     private app: TokenRingApp,
     private options: z.output<typeof SchedulerConfigSchema>,
-  ) {
-  }
+  ) {}
 
   attach(agent: Agent): void {
-    const config = deepMerge(
-      this.options.agentDefaults,
-      agent.getAgentConfigSlice("scheduler", SchedulerAgentConfigSchema),
-    );
+    const config = deepMerge(this.options.agentDefaults, agent.getAgentConfigSlice("scheduler", SchedulerAgentConfigSchema));
 
     agent.initializeState(ScheduleTaskState, config);
     agent.initializeState(ScheduleExecutionState, config);
@@ -37,29 +33,25 @@ export default class SchedulerService implements TokenRingService {
   runScheduler(agent: Agent): void {
     const execState = agent.getState(ScheduleExecutionState);
     if (execState.abortController) {
-      agent.warningMessage(
-        "Scheduler is already running, not starting scheduler.",
-      );
+      agent.warningMessage("Scheduler is already running, not starting scheduler.");
       return;
     }
 
     const taskState = agent.getState(ScheduleTaskState);
     if (isEmpty(taskState.tasks)) {
-      agent.warningMessage(
-        "No tasks found for scheduler, not starting scheduler.",
-      );
+      agent.warningMessage("No tasks found for scheduler, not starting scheduler.");
       return;
     }
 
     agent.infoMessage(`Starting scheduler with ${taskState.tasks.size} tasks`);
 
     const abortController = new AbortController();
-    agent.mutateState(ScheduleExecutionState, (state) => {
+    agent.mutateState(ScheduleExecutionState, state => {
       state.abortController = abortController;
     });
     const handleAbort = () => abortController.abort();
 
-    agent.runBackgroundTask(async (signal) => {
+    agent.runBackgroundTask(async signal => {
       signal.addEventListener("abort", handleAbort);
       try {
         await this.watchTasks(agent, abortController.signal);
@@ -69,7 +61,7 @@ export default class SchedulerService implements TokenRingService {
       } finally {
         signal.removeEventListener("abort", handleAbort);
       }
-      agent.mutateState(ScheduleExecutionState, (state) => {
+      agent.mutateState(ScheduleExecutionState, state => {
         state.abortController = null;
         for (const [taskName, task] of state.tasks.entries()) {
           if (task.timer) {
@@ -81,9 +73,7 @@ export default class SchedulerService implements TokenRingService {
             task.abortController.abort();
             // The task will delete itself at abort
           } else {
-            agent.debugMessage(
-              `Task ${taskName} is not running and has no timer, deleting task`,
-            );
+            agent.debugMessage(`Task ${taskName} is not running and has no timer, deleting task`);
             state.tasks.delete(taskName);
           }
         }
@@ -101,7 +91,7 @@ export default class SchedulerService implements TokenRingService {
   }
 
   addTask(name: string, task: ScheduledTask, agent: Agent): void {
-    agent.mutateState(ScheduleTaskState, (state) => {
+    agent.mutateState(ScheduleTaskState, state => {
       state.tasks.set(name, task);
     });
 
@@ -112,8 +102,8 @@ export default class SchedulerService implements TokenRingService {
   }
 
   removeTask(name: string, agent: Agent): void {
-    agent.mutateState(ScheduleExecutionState, (execState) => {
-      agent.mutateState(ScheduleTaskState, (taskState) => {
+    agent.mutateState(ScheduleExecutionState, execState => {
+      agent.mutateState(ScheduleTaskState, taskState => {
         const task = taskState.tasks.get(name);
         if (!task) {
           throw new Error(`Task not found: ${name}`);
@@ -131,13 +121,10 @@ export default class SchedulerService implements TokenRingService {
   }
 
   async watchTasks(agent: Agent, signal: AbortSignal) {
-    for await (const taskState of agent.subscribeStateAsync(
-      ScheduleTaskState,
-      signal,
-    )) {
+    for await (const taskState of agent.subscribeStateAsync(ScheduleTaskState, signal)) {
       const now = Date.now();
 
-      agent.mutateState(ScheduleExecutionState, (executionState) => {
+      agent.mutateState(ScheduleExecutionState, executionState => {
         for (const [taskName, task] of taskState.tasks.entries()) {
           const executionEntry = executionState.tasks.get(taskName);
           if (executionEntry) {
@@ -149,12 +136,7 @@ export default class SchedulerService implements TokenRingService {
               if (executionEntry.timer) clearTimeout(executionEntry.timer);
               executionEntry.nextRunTime = nextRunTime;
 
-              executionEntry.timer = nextRunTime
-                ? setTimeout(
-                  () => this.runTask(taskName, task, agent),
-                  nextRunTime - now,
-                )
-                : undefined;
+              executionEntry.timer = nextRunTime ? setTimeout(() => this.runTask(taskName, task, agent), nextRunTime - now) : undefined;
             }
           } else {
             // Task is not in execution state, schedule it
@@ -163,12 +145,7 @@ export default class SchedulerService implements TokenRingService {
               executionState.tasks.set(taskName, {
                 nextRunTime,
                 status: "pending",
-                timer: nextRunTime
-                  ? setTimeout(
-                    () => this.runTask(taskName, task, agent),
-                    nextRunTime - now,
-                  )
-                  : undefined,
+                timer: nextRunTime ? setTimeout(() => this.runTask(taskName, task, agent), nextRunTime - now) : undefined,
               });
             }
           }
@@ -177,15 +154,11 @@ export default class SchedulerService implements TokenRingService {
     }
   }
 
-  async runTask(
-    name: string,
-    task: ScheduledTask,
-    agent: Agent,
-  ): Promise<void> {
+  async runTask(name: string, task: ScheduledTask, agent: Agent): Promise<void> {
     const abortController = new AbortController();
     const signal = abortController.signal;
 
-    const execEntry = agent.mutateState(ScheduleExecutionState, (state) => {
+    const execEntry = agent.mutateState(ScheduleExecutionState, state => {
       const execEntry = state.tasks.get(name);
       if (execEntry) {
         execEntry.status = "running";
@@ -198,38 +171,26 @@ export default class SchedulerService implements TokenRingService {
     });
 
     if (!execEntry) {
-      agent.infoMessage(
-        `Task ${name} started running, but no entry was found in execution state - task may have been deleted and not cleaned up properly`,
-      );
+      agent.infoMessage(`Task ${name} started running, but no entry was found in execution state - task may have been deleted and not cleaned up properly`);
       return;
     }
 
     agent.infoMessage(`Running task: ${name}`);
 
     try {
-      const eventCursor = agent
-        .getState(AgentEventState)
-        .getEventCursorFromCurrentPosition();
+      const eventCursor = agent.getState(AgentEventState).getEventCursorFromCurrentPosition();
 
       const requestId = agent.handleInput({
         from: `Scheduled task ${name}`,
         message: task.message,
       });
 
-      for await (const state of agent.subscribeStateAsync(
-        AgentEventState,
-        signal,
-      )) {
+      for await (const state of agent.subscribeStateAsync(AgentEventState, signal)) {
         for (const event of state.yieldEventsByCursor(eventCursor)) {
           switch (event.type) {
             case "agent.response":
               if (event.requestId === requestId) {
-                this.handleTaskFinished(
-                  name,
-                  event.status === "success" ? "completed" : "failed",
-                  event.message,
-                  agent,
-                );
+                this.handleTaskFinished(name, event.status === "success" ? "completed" : "failed", event.message, agent);
                 agent.config.idleTimeout = 3600_000;
                 return;
               }
@@ -239,40 +200,22 @@ export default class SchedulerService implements TokenRingService {
       if (signal.aborted) {
         this.handleTaskFinished(name, "failed", "Task was aborted", agent);
       } else {
-        this.handleTaskFinished(
-          name,
-          "failed",
-          "Task exited without any reason given",
-          agent,
-        );
+        this.handleTaskFinished(name, "failed", "Task exited without any reason given", agent);
       }
     } catch (error: unknown) {
-      this.handleTaskFinished(
-        name,
-        "failed",
-        `Task failed with error: ${error as Error}`,
-        agent,
-      );
+      this.handleTaskFinished(name, "failed", `Task failed with error: ${error as Error}`, agent);
     }
   }
 
-  private handleTaskFinished(
-    name: string,
-    status: "completed" | "failed",
-    message: string,
-    schedulerAgent: Agent,
-  ): void {
+  private handleTaskFinished(name: string, status: "completed" | "failed", message: string, schedulerAgent: Agent): void {
     const now = Date.now();
-    const executionEntry = schedulerAgent.mutateState(
-      ScheduleExecutionState,
-      (state) => {
-        const executionEntry = state.tasks.get(name);
-        state.tasks.delete(name);
-        return executionEntry;
-      },
-    );
+    const executionEntry = schedulerAgent.mutateState(ScheduleExecutionState, state => {
+      const executionEntry = state.tasks.get(name);
+      state.tasks.delete(name);
+      return executionEntry;
+    });
 
-    schedulerAgent.mutateState(ScheduleTaskState, (state) => {
+    schedulerAgent.mutateState(ScheduleTaskState, state => {
       const task = state.tasks.get(name);
       if (task) task.lastRunTime = Date.now();
       if (!state.history.has(name)) state.history.set(name, []);

@@ -1,7 +1,7 @@
 import moment from "moment-timezone";
-import type {ScheduledTask} from "../schema.ts";
-import {checkDayConditions} from "./checkDayConditions.ts";
-import {parseInterval} from "./parseInterval.ts";
+import type { ScheduledTask } from "../schema.ts";
+import { checkDayConditions } from "./checkDayConditions.ts";
+import { parseInterval } from "./parseInterval.ts";
 
 export const MAX_DAYS_AHEAD = 30;
 
@@ -16,16 +16,10 @@ export function getNextRunTime(task: ScheduledTask): number | null {
     const interval = parseInterval(task.repeat);
     if (!interval) return null;
 
-    earliestRunTime = moment.tz(
-      task.lastRunTime ? task.lastRunTime + interval * 1000 : now,
-      tz,
-    );
+    earliestRunTime = moment.tz(task.lastRunTime ? task.lastRunTime + interval * 1000 : now, tz);
   } else {
     // If it has run before, we look at the next day. If not, we start from now.
-    earliestRunTime = moment.tz(
-      task.lastRunTime ? task.lastRunTime + 86400_000 : now,
-      tz,
-    );
+    earliestRunTime = moment.tz(task.lastRunTime ? task.lastRunTime + 86400_000 : now, tz);
     if (task.lastRunTime) earliestRunTime.startOf("day");
   }
 
@@ -39,11 +33,7 @@ export function getNextRunTime(task: ScheduledTask): number | null {
 
     if (task.after) {
       const [afterHour, afterMin] = task.after.split(":").map(Number);
-      const afterTime = checkDay
-        .clone()
-        .hour(afterHour)
-        .minute(afterMin)
-        .second(0);
+      const afterTime = checkDay.clone().hour(afterHour).minute(afterMin).second(0);
 
       // If current checkDay is before the 'from' time, move it to 'from' time
       if (checkDay.isBefore(afterTime)) {
@@ -54,11 +44,7 @@ export function getNextRunTime(task: ScheduledTask): number | null {
     // Check if candidate time is after "to" window
     if (task.before) {
       const [beforeHour, beforeMin] = task.before.split(":").map(Number);
-      const beforeTime = checkDay
-        .clone()
-        .hour(beforeHour)
-        .minute(beforeMin)
-        .second(0);
+      const beforeTime = checkDay.clone().hour(beforeHour).minute(beforeMin).second(0);
 
       if (checkDay.isAfter(beforeTime)) {
         continue; // Try next day

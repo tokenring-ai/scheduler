@@ -1,1 +1,1 @@
-export {default as SchedulerService} from "./SchedulerService.ts";
+export { default as SchedulerService } from "./SchedulerService.ts";

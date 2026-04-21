@@ -1,19 +1,15 @@
 import type Agent from "@tokenring-ai/agent/Agent";
-import type {TokenRingToolDefinition, } from "@tokenring-ai/chat/schema";
-import {z} from "zod";
+import type { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
+import { z } from "zod";
 import SchedulerService from "../SchedulerService.ts";
 
 const name = "scheduler_remove_task";
 const displayName = "Scheduler/removeTask";
 
-function execute(
-  {taskName}: z.output<typeof inputSchema>,
-  agent: Agent,
-): string {
+function execute({ taskName }: z.output<typeof inputSchema>, agent: Agent): string {
   const scheduler = agent.requireServiceByType(SchedulerService);
 
   scheduler.removeTask(taskName, agent);
-
 
   return `Scheduled task '${taskName}' removed successfully`;
 }

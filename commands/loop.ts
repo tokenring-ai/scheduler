@@ -1,8 +1,8 @@
-import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import { CommandFailedError } from "@tokenring-ai/agent/AgentError";
+import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
 import SchedulerService from "../SchedulerService.ts";
-import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
-import {parseLoopCommand} from "../utility/parseLoopCommand.ts";
+import { ScheduleExecutionState } from "../state/scheduleExecutionState.ts";
+import { parseLoopCommand } from "../utility/parseLoopCommand.ts";
 
 const inputSchema = {
   args: {},
@@ -34,15 +34,10 @@ If no interval is provided, the prompt runs every 10 minutes.
 /loop 5m check if the deployment finished
 /loop check the build every 2 hours`,
   inputSchema,
-  execute: ({
-              remainder,
-              agent,
-            }: AgentCommandInputType<typeof inputSchema>): string => {
+  execute: ({ remainder, agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const parsed = parseLoopCommand(remainder);
     if (!parsed) {
-      throw new CommandFailedError(
-        "Usage: /loop [interval] <prompt> or /loop <prompt> every <interval>",
-      );
+      throw new CommandFailedError("Usage: /loop [interval] <prompt> or /loop <prompt> every <interval>");
     }
 
     const scheduler = agent.requireServiceByType(SchedulerService);
@@ -63,10 +58,7 @@ If no interval is provided, the prompt runs every 10 minutes.
       scheduler.runScheduler(agent);
     }
 
-    const lines = [
-      `Scheduled loop '${taskName}' to run every ${parsed.displayInterval}.`,
-      `Prompt: ${parsed.prompt}`,
-    ];
+    const lines = [`Scheduled loop '${taskName}' to run every ${parsed.displayInterval}.`, `Prompt: ${parsed.prompt}`];
 
     if (parsed.note) {
       lines.push(parsed.note);

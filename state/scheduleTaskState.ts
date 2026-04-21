@@ -1,7 +1,7 @@
-import {AgentStateSlice} from "@tokenring-ai/agent/types";
-import {z} from "zod";
+import { AgentStateSlice } from "@tokenring-ai/agent/types";
+import { z } from "zod";
 
-import {type ScheduledTask, ScheduledTaskSchema, type SchedulerAgentConfigSchema} from "../schema.ts";
+import { type ScheduledTask, ScheduledTaskSchema, type SchedulerAgentConfigSchema } from "../schema.ts";
 
 interface TaskRunHistory {
   startTime: number;
@@ -14,15 +14,11 @@ const serializationSchema = z.object({
   tasks: z.record(z.string(), ScheduledTaskSchema),
 });
 
-export class ScheduleTaskState extends AgentStateSlice<
-  typeof serializationSchema
-> {
+export class ScheduleTaskState extends AgentStateSlice<typeof serializationSchema> {
   tasks: Map<string, ScheduledTask>;
   history = new Map<string, TaskRunHistory[]>();
 
-  constructor(
-    readonly initialConfig: z.output<typeof SchedulerAgentConfigSchema>,
-  ) {
+  constructor(readonly initialConfig: z.output<typeof SchedulerAgentConfigSchema>) {
     super("ScheduleTaskState", serializationSchema);
     this.tasks = new Map(Object.entries(initialConfig.tasks));
   }

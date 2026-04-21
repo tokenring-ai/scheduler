@@ -1,5 +1,5 @@
-import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import { CommandFailedError } from "@tokenring-ai/agent/AgentError";
+import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
 import SchedulerService from "../../SchedulerService.ts";
 
 const inputSchema = {
@@ -22,10 +22,7 @@ export default {
 
 /schedule remove myTask`,
   inputSchema,
-  execute: ({
-              positionals,
-              agent,
-            }: AgentCommandInputType<typeof inputSchema>): string => {
+  execute: ({ positionals, agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const name = positionals.name;
     if (!name) throw new CommandFailedError("Usage: /scheduler remove <name>");
     agent.requireServiceByType(SchedulerService).removeTask(name, agent);

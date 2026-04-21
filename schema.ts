@@ -1,13 +1,13 @@
 import z from "zod";
 
 export const ScheduledTaskSchema = z.object({
-  repeat: z.string().optional(),
-  after: z.string().optional(),
-  before: z.string().optional(),
-  weekdays: z.string().optional(),
-  dayOfMonth: z.number().min(1).max(31).optional(),
+  repeat: z.string().exactOptional(),
+  after: z.string().exactOptional(),
+  before: z.string().exactOptional(),
+  weekdays: z.string().exactOptional(),
+  dayOfMonth: z.number().min(1).max(31).exactOptional(),
   lastRunTime: z.number().default(0),
-  timezone: z.string().optional(),
+  timezone: z.string().exactOptional(),
   message: z.string(),
 });
 

@@ -1,15 +1,15 @@
-import type {RPCSchema} from "@tokenring-ai/rpc/types";
-import {z} from "zod";
-import {AgentNotFoundSchema} from "@tokenring-ai/agent/schema";
+import { AgentNotFoundSchema } from "@tokenring-ai/agent/schema";
+import type { RPCSchema } from "@tokenring-ai/rpc/types";
+import { z } from "zod";
 
 const ScheduledTaskSchema = z.object({
-  repeat: z.string().optional(),
-  after: z.string().optional(),
-  before: z.string().optional(),
-  weekdays: z.string().optional(),
-  dayOfMonth: z.number().min(1).max(31).optional(),
+  repeat: z.string().exactOptional(),
+  after: z.string().exactOptional(),
+  before: z.string().exactOptional(),
+  weekdays: z.string().exactOptional(),
+  dayOfMonth: z.number().min(1).max(31).exactOptional(),
   lastRunTime: z.number(),
-  timezone: z.string().optional(),
+  timezone: z.string().exactOptional(),
   message: z.string(),
 });
 
@@ -23,7 +23,7 @@ const TaskRunHistorySchema = z.object({
 const ExecutionEntrySchema = z.object({
   nextRunTime: z.number().nullable(),
   status: z.enum(["pending", "running"]),
-  startTime: z.number().optional(),
+  startTime: z.number().exactOptional(),
 });
 
 export default {
@@ -37,11 +37,11 @@ export default {
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           tasks: z.record(z.string(), ScheduledTaskSchema),
           count: z.number(),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
     addTask: {
@@ -53,11 +53,11 @@ export default {
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           success: z.boolean(),
           message: z.string(),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
     removeTask: {
@@ -68,11 +68,11 @@ export default {
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           success: z.boolean(),
           message: z.string(),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
     getStatus: {
@@ -82,12 +82,12 @@ export default {
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           running: z.boolean(),
           autoStart: z.boolean(),
           executions: z.record(z.string(), ExecutionEntrySchema),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
     startScheduler: {
@@ -97,11 +97,11 @@ export default {
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           success: z.boolean(),
           message: z.string(),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
     stopScheduler: {
@@ -111,25 +111,25 @@ export default {
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           success: z.boolean(),
           message: z.string(),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
     getHistory: {
       type: "query",
       input: z.object({
         agentId: z.string(),
-        taskName: z.string().optional(),
+        taskName: z.string().exactOptional(),
       }),
       result: z.discriminatedUnion("status", [
         z.object({
-          status: z.literal('success'),
+          status: z.literal("success"),
           history: z.record(z.string(), z.array(TaskRunHistorySchema)),
         }),
-        AgentNotFoundSchema
+        AgentNotFoundSchema,
       ]),
     },
   },

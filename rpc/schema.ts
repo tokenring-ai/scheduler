@@ -1,5 +1,6 @@
 import type {RPCSchema} from "@tokenring-ai/rpc/types";
 import {z} from "zod";
+import {AgentNotFoundSchema} from "@tokenring-ai/agent/schema";
 
 const ScheduledTaskSchema = z.object({
   repeat: z.string().optional(),
@@ -34,10 +35,14 @@ export default {
       input: z.object({
         agentId: z.string(),
       }),
-      result: z.object({
-        tasks: z.record(z.string(), ScheduledTaskSchema),
-        count: z.number(),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          tasks: z.record(z.string(), ScheduledTaskSchema),
+          count: z.number(),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
     addTask: {
       type: "mutation",
@@ -46,10 +51,14 @@ export default {
         name: z.string(),
         task: ScheduledTaskSchema,
       }),
-      result: z.object({
-        success: z.boolean(),
-        message: z.string(),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
     removeTask: {
       type: "mutation",
@@ -57,41 +66,57 @@ export default {
         agentId: z.string(),
         name: z.string(),
       }),
-      result: z.object({
-        success: z.boolean(),
-        message: z.string(),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
     getStatus: {
       type: "query",
       input: z.object({
         agentId: z.string(),
       }),
-      result: z.object({
-        running: z.boolean(),
-        autoStart: z.boolean(),
-        executions: z.record(z.string(), ExecutionEntrySchema),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          running: z.boolean(),
+          autoStart: z.boolean(),
+          executions: z.record(z.string(), ExecutionEntrySchema),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
     startScheduler: {
       type: "mutation",
       input: z.object({
         agentId: z.string(),
       }),
-      result: z.object({
-        success: z.boolean(),
-        message: z.string(),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
     stopScheduler: {
       type: "mutation",
       input: z.object({
         agentId: z.string(),
       }),
-      result: z.object({
-        success: z.boolean(),
-        message: z.string(),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
     getHistory: {
       type: "query",
@@ -99,9 +124,13 @@ export default {
         agentId: z.string(),
         taskName: z.string().optional(),
       }),
-      result: z.object({
-        history: z.record(z.string(), z.array(TaskRunHistorySchema)),
-      }),
+      result: z.discriminatedUnion("status", [
+        z.object({
+          status: z.literal('success'),
+          history: z.record(z.string(), z.array(TaskRunHistorySchema)),
+        }),
+        AgentNotFoundSchema
+      ]),
     },
   },
 } satisfies RPCSchema;

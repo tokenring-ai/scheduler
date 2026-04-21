@@ -9,30 +9,38 @@ import SchedulerRpcSchema from "./schema.ts";
 export default createRPCEndpoint(SchedulerRpcSchema, {
   getTasks(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     const tasks = Object.fromEntries(
       agent.getState(ScheduleTaskState).tasks.entries(),
     );
-    return {tasks, count: Object.keys(tasks).length};
+    return {status: 'success', tasks, count: Object.keys(tasks).length};
   },
 
   addTask(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     app.requireService(SchedulerService).addTask(args.name, args.task, agent);
-    return {success: true, message: `Task "${args.name}" added`};
+    return {status: 'success', success: true, message: `Task "${args.name}" added`};
   },
 
   removeTask(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     app.requireService(SchedulerService).removeTask(args.name, agent);
-    return {success: true, message: `Task "${args.name}" removed`};
+    return {status: 'success', success: true, message: `Task "${args.name}" removed`};
   },
 
   getStatus(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     const execState = agent.getState(ScheduleExecutionState);
     const executions = Object.fromEntries(
       [...execState.tasks.entries()].map(([name, entry]) => [
@@ -45,6 +53,7 @@ export default createRPCEndpoint(SchedulerRpcSchema, {
       ]),
     );
     return {
+      status: 'success',
       running: execState.abortController !== null,
       autoStart: execState.autoStart,
       executions,
@@ -53,25 +62,31 @@ export default createRPCEndpoint(SchedulerRpcSchema, {
 
   startScheduler(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     app.requireService(SchedulerService).runScheduler(agent);
-    return {success: true, message: "Scheduler started"};
+    return {status: 'success', success: true, message: "Scheduler started"};
   },
 
   stopScheduler(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     app.requireService(SchedulerService).stopScheduler(agent);
-    return {success: true, message: "Scheduler stopped"};
+    return {status: 'success', success: true, message: "Scheduler stopped"};
   },
 
   getHistory(args, app: TokenRingApp) {
     const agent = app.requireService(AgentManager).getAgent(args.agentId);
-    if (!agent) throw new Error("Agent not found");
+    if (!agent) {
+      return {status: 'agentNotFound'};
+    }
     const {history} = agent.getState(ScheduleTaskState);
     if (args.taskName) {
-      return {history: {[args.taskName]: history.get(args.taskName) ?? []}};
+      return {status: 'success', history: {[args.taskName]: history.get(args.taskName) ?? []}};
     }
-    return {history: Object.fromEntries(history.entries())};
+    return {status: 'success', history: Object.fromEntries(history.entries())};
   },
 });

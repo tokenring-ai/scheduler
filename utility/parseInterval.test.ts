@@ -1,5 +1,5 @@
-import {describe, expect, it} from "vitest";
-import {parseInterval} from "./parseInterval.ts";
+import { describe, expect, it } from "vitest";
+import { parseInterval } from "./parseInterval.ts";
 
 describe("parseInterval", () => {
   it("parses seconds", () => {

@@ -1,10 +1,13 @@
 # @tokenring-ai/scheduler
 
-Schedule AI agents to run at specified intervals with comprehensive timing control, runtime monitoring, and task state management.
+Schedule AI agents to run at specified intervals with comprehensive timing control, runtime monitoring, and task state
+management.
 
 ## Overview
 
-The `@tokenring-ai/scheduler` package provides automated scheduling of AI agents with flexible timing options, runtime monitoring, and task state management. It runs within an AI agent to schedule and execute tasks based on configurable schedules.
+The `@tokenring-ai/scheduler` package provides automated scheduling of AI agents with flexible timing options, runtime
+monitoring, and task state management. It runs within an AI agent to schedule and execute tasks based on configurable
+schedules.
 
 **Key Features:**
 
@@ -34,7 +37,8 @@ The scheduler is installed as a plugin in your TokenRing application:
 bun install @tokenring-ai/scheduler
 ```
 
-**Note:** This package is typically installed as part of the TokenRing application ecosystem and is not meant to be used standalone.
+**Note:** This package is typically installed as part of the TokenRing application ecosystem and is not meant to be used
+standalone.
 
 ## Features
 
@@ -44,7 +48,8 @@ bun install @tokenring-ai/scheduler
 - **Timezone Support**: Full IANA timezone support for global scheduling
 - **Runtime Monitoring**: Real-time task status and execution history via `/schedule show` and `/schedule history`
 - **Interactive Task Management**: Chat commands for adding, removing, and monitoring tasks
-- **Programmatic API**: Tools for integrating scheduling into agent workflows (`scheduler_add_task`, `scheduler_remove_task`, `scheduler_get_schedule`)
+- **Programmatic API**: Tools for integrating scheduling into agent workflows (`scheduler_add_task`,
+  `scheduler_remove_task`, `scheduler_get_schedule`)
 - **State Persistence**: Task configurations persist across agent restarts (execution history is not persisted)
 - **Graceful Shutdown**: Clean task cancellation and state cleanup via abort controllers
 - **Loop Commands**: Quick scheduling of repeated prompts via `/loop` command
@@ -75,7 +80,9 @@ constructor(app: TokenRingApp, options: z.output<typeof SchedulerConfigSchema>)
 
 #### attach(agent: Agent): void
 
-Attaches the scheduler to an agent, initializing task and execution state. Merges configuration from app-level defaults with agent-specific configuration using deep merge. If `autoStart` is enabled and tasks exist, the scheduler will start automatically.
+Attaches the scheduler to an agent, initializing task and execution state. Merges configuration from app-level defaults
+with agent-specific configuration using deep merge. If `autoStart` is enabled and tasks exist, the scheduler will start
+automatically.
 
 **Parameters:**
 
@@ -83,7 +90,8 @@ Attaches the scheduler to an agent, initializing task and execution state. Merge
 
 #### runScheduler(agent: Agent): void
 
-Starts the scheduler loop for the given agent. Creates a background task that watches for task executions. The scheduler will only start if:
+Starts the scheduler loop for the given agent. Creates a background task that watches for task executions. The scheduler
+will only start if:
 
 - No scheduler is already running (checks for existing `abortController`)
 - At least one task is configured (checks `ScheduleTaskState.tasks`)
@@ -103,7 +111,8 @@ Sets up abort handling and cleanup. Logs warnings if scheduler is already runnin
 
 #### stopScheduler(agent: Agent): void
 
-Stops the scheduler loop for the given agent by aborting the running scheduler. Logs a warning if the scheduler is not running.
+Stops the scheduler loop for the given agent by aborting the running scheduler. Logs a warning if the scheduler is not
+running.
 
 **Parameters:**
 
@@ -111,7 +120,8 @@ Stops the scheduler loop for the given agent by aborting the running scheduler. 
 
 #### addTask(name: string, task: ScheduledTask, agent: Agent): void
 
-Adds a new scheduled task to the agent. If `autoStart` is enabled and the scheduler is not running, it will start automatically.
+Adds a new scheduled task to the agent. If `autoStart` is enabled and the scheduler is not running, it will start
+automatically.
 
 **Parameters:**
 
@@ -132,7 +142,8 @@ Removes a scheduled task from the agent, clearing any timers or running tasks. T
 
 #### watchTasks(agent: Agent, signal: AbortSignal): Promise<void>
 
-Watches task state and schedules executions. Monitors for `ScheduleTaskState` changes and updates timers accordingly. Uses async iteration to subscribe to state changes.
+Watches task state and schedules executions. Monitors for `ScheduleTaskState` changes and updates timers accordingly.
+Uses async iteration to subscribe to state changes.
 
 **Parameters:**
 
@@ -148,7 +159,8 @@ Watches task state and schedules executions. Monitors for `ScheduleTaskState` ch
 
 #### runTask(name: string, task: ScheduledTask, agent: Agent): Promise<void>
 
-Executes a scheduled task by sending the task message to the agent and monitoring execution. Tracks execution state and records history.
+Executes a scheduled task by sending the task message to the agent and monitoring execution. Tracks execution state and
+records history.
 
 **Parameters:**
 
@@ -166,7 +178,8 @@ Executes a scheduled task by sending the task message to the agent and monitorin
 
 ### Tools
 
-The scheduler provides three tools for programmatic task management. These tools require the `available-agents` context handler.
+The scheduler provides three tools for programmatic task management. These tools require the `available-agents` context
+handler.
 
 #### scheduler_add_task
 
@@ -192,16 +205,16 @@ Adds a new scheduled task to run an agent at specified intervals.
 
 **Parameters:**
 
-| Parameter    | Type     | Required | Description                                                                                      |
-|--------------|----------|----------|--------------------------------------------------------------------------------------------------|
-| `taskName`   | `string` | Yes      | Unique name for the scheduled task                                                               |
-| `task`       | `object` | Yes      | Task configuration object                                                                        |
-| `task.description` | `string` | Yes | A detailed description of the task to execute. Should provide enough detail for an AI agent to understand the purpose and requirements. |
-| `task.context` | `string` | No | Additional context or background information relevant to task execution. May include dependencies or other details. |
-| `task.repeat` | `string` | No | Interval for repeated execution (e.g., "1 hour", "30 minutes", "3 days"). Omit for one-time tasks. |
-| `task.after` | `string` | No | Start time in HH:mm format (24-hour clock). Task will run after this time.                       |
-| `task.before` | `string` | No | End time in HH:mm format (24-hour clock). Task will run before this time.                        |
-| `task.timezone` | `string` | No | IANA timezone string (e.g., 'America/New_York', 'UTC'). Defaults to user's timezone.             |
+| Parameter          | Type     | Required | Description                                                                                                                             |
+|--------------------|----------|----------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `taskName`         | `string` | Yes      | Unique name for the scheduled task                                                                                                      |
+| `task`             | `object` | Yes      | Task configuration object                                                                                                               |
+| `task.description` | `string` | Yes      | A detailed description of the task to execute. Should provide enough detail for an AI agent to understand the purpose and requirements. |
+| `task.context`     | `string` | No       | Additional context or background information relevant to task execution. May include dependencies or other details.                     |
+| `task.repeat`      | `string` | No       | Interval for repeated execution (e.g., "1 hour", "30 minutes", "3 days"). Omit for one-time tasks.                                      |
+| `task.after`       | `string` | No       | Start time in HH:mm format (24-hour clock). Task will run after this time.                                                              |
+| `task.before`      | `string` | No       | End time in HH:mm format (24-hour clock). Task will run before this time.                                                               |
+| `task.timezone`    | `string` | No       | IANA timezone string (e.g., 'America/New_York', 'UTC'). Defaults to user's timezone.                                                    |
 
 **Example:**
 
@@ -470,7 +483,8 @@ await agent.executeTool('scheduler_add_task', {
 
 ### Plugin Configuration
 
-The scheduler plugin is configured at the application level in `.tokenring/config.mjs`. Configuration is validated using Zod schemas and merged with agent-specific configuration using deep merge.
+The scheduler plugin is configured at the application level in `.tokenring/config.mjs`. Configuration is validated using
+Zod schemas and merged with agent-specific configuration using deep merge.
 
 **Plugin Configuration Schema:**
 
@@ -533,12 +547,12 @@ The `agentDefaults` are merged with per-agent configuration using deep merge, al
 
 ### Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `agentDefaults.autoStart` | `boolean` | `true` | Whether to automatically start the scheduler when tasks are configured |
-| `agentDefaults.tasks` | `Record<string, ScheduledTask>` | `{}` | Initial task configurations |
-| `autoStart` (per-agent) | `boolean` | `true` | Agent-specific override for auto-start |
-| `tasks` (per-agent) | `Record<string, ScheduledTask>` | `{}` | Agent-specific task configurations |
+| Option                    | Type                            | Default | Description                                                            |
+|---------------------------|---------------------------------|---------|------------------------------------------------------------------------|
+| `agentDefaults.autoStart` | `boolean`                       | `true`  | Whether to automatically start the scheduler when tasks are configured |
+| `agentDefaults.tasks`     | `Record<string, ScheduledTask>` | `{}`    | Initial task configurations                                            |
+| `autoStart` (per-agent)   | `boolean`                       | `true`  | Agent-specific override for auto-start                                 |
+| `tasks` (per-agent)       | `Record<string, ScheduledTask>` | `{}`    | Agent-specific task configurations                                     |
 
 ## Chat Commands
 
@@ -591,14 +605,15 @@ The command will prompt for:
 - **Task Name**: Unique identifier for the task
 - **Instructions for the agent**: The message to send to the agent when the task runs
 - **How often to run**: One of:
-  - Every 5 minutes
-  - Every hour
-  - Every day
-  - For one-time tasks, simply omit the repeat interval when creating the task
+- Every 5 minutes
+- Every hour
+- Every day
+- For one-time tasks, simply omit the repeat interval when creating the task
 - **Earliest time of day to run**: Optional start time (hh:mm, 24-hour clock)
 - **Latest time of day to run**: Optional end time (hh:mm, 24-hour clock)
 
-**Note:** For one-time tasks, omit the `repeat` field. The task will run once at the next available time that matches any day conditions (weekdays, dayOfMonth) and falls within the time window (after/before).
+**Note:** For one-time tasks, omit the `repeat` field. The task will run once at the next available time that matches
+any day conditions (weekdays, dayOfMonth) and falls within the time window (after/before).
 
 ### /schedule remove
 
@@ -656,7 +671,8 @@ Display the execution history for all scheduled tasks, including status and dura
 
 ### /loop
 
-Schedule a prompt to run repeatedly in the current session. This is a quick way to schedule repeated tasks without using the full `/schedule add` interface.
+Schedule a prompt to run repeatedly in the current session. This is a quick way to schedule repeated tasks without using
+the full `/schedule add` interface.
 
 **Usage:**
 
@@ -690,7 +706,8 @@ If no interval is provided, the prompt runs every 10 minutes.
 - Hours: `h`, `hr`, `hrs`, `hour`, `hours`
 - Days: `d`, `day`, `days`
 
-**Note:** Seconds are rounded up to the nearest minute since the scheduler operates on minute granularity. A task name is automatically generated (e.g., `loop-abc123def`).
+**Note:** Seconds are rounded up to the nearest minute since the scheduler operates on minute granularity. A task name
+is automatically generated (e.g., `loop-abc123def`).
 
 ## ScheduleTask Schema
 
@@ -711,18 +728,20 @@ const ScheduledTaskSchema = z.object({
 
 ### ScheduleTask Properties
 
-| Property       | Type      | Required | Description                                                         |
-|----------------|-----------|----------|---------------------------------------------------------------------|
-| `message`      | `string`  | Yes      | Message to send to the agent when the task runs                     |
-| `repeat`       | `string`  | No       | Run at fixed intervals (e.g., "30 seconds", "5 minutes", "2 hours") |
-| `after`        | `string`  | No       | Start time in HH:MM format (e.g., "09:00")                          |
-| `before`       | `string`  | No       | End time in HH:MM format (e.g., "17:00")                            |
-| `weekdays`     | `string`  | No       | Days of week (e.g., "mon tue wed thu fri", "sat sun")               |
-| `dayOfMonth`   | `number`  | No       | Specific day of month (1-31)                                        |
-| `lastRunTime`  | `number`  | No       | Timestamp of last execution (default: 0)                            |
-| `timezone`     | `string`  | No       | IANA timezone string (e.g., 'America/New_York', 'UTC')              |
+| Property      | Type     | Required | Description                                                         |
+|---------------|----------|----------|---------------------------------------------------------------------|
+| `message`     | `string` | Yes      | Message to send to the agent when the task runs                     |
+| `repeat`      | `string` | No       | Run at fixed intervals (e.g., "30 seconds", "5 minutes", "2 hours") |
+| `after`       | `string` | No       | Start time in HH:MM format (e.g., "09:00")                          |
+| `before`      | `string` | No       | End time in HH:MM format (e.g., "17:00")                            |
+| `weekdays`    | `string` | No       | Days of week (e.g., "mon tue wed thu fri", "sat sun")               |
+| `dayOfMonth`  | `number` | No       | Specific day of month (1-31)                                        |
+| `lastRunTime` | `number` | No       | Timestamp of last execution (default: 0)                            |
+| `timezone`    | `string` | No       | IANA timezone string (e.g., 'America/New_York', 'UTC')              |
 
-**Note:** Tasks without `repeat` run only once. For one-time tasks, omit the `repeat` field. The task will run on the next available day that matches any day conditions (weekdays, dayOfMonth) and falls within the time window (after/before).
+**Note:** Tasks without `repeat` run only once. For one-time tasks, omit the `repeat` field. The task will run on the
+next available day that matches any day conditions (weekdays, dayOfMonth) and falls within the time window (
+after/before).
 
 ## Schedule Configuration
 
@@ -828,7 +847,7 @@ export function getNextRunTime(task: ScheduledTask): number | null
 **Examples:**
 
 ```typescript
-import { getNextRunTime } from "@tokenring-ai/scheduler/utility/getNextRunTime";
+import {getNextRunTime} from "@tokenring-ai/scheduler/utility/getNextRunTime";
 
 // For a task configured to run daily at 9:00 AM
 const task = {
@@ -909,7 +928,7 @@ export function parseLoopCommand(input: string): ParsedLoopCommand | null
 **Examples:**
 
 ```typescript
-import { parseLoopCommand } from "@tokenring-ai/scheduler/utility/parseLoopCommand";
+import {parseLoopCommand} from "@tokenring-ai/scheduler/utility/parseLoopCommand";
 
 // Parse leading interval format
 const result1 = parseLoopCommand("5m check deployment");
@@ -1021,7 +1040,8 @@ Tracks runtime execution state:
 - `autoStart`: Whether the scheduler should auto-start
 - `abortController`: Controls the scheduler loop
 
-**Persistence:** Only `autoStart` is serialized and persisted. Runtime state (running tasks, timers) is not persisted and will be reset on restart.
+**Persistence:** Only `autoStart` is serialized and persisted. Runtime state (running tasks, timers) is not persisted
+and will be reset on restart.
 
 **State Restoration Pattern:**
 
@@ -1039,9 +1059,11 @@ The scheduler handles various error conditions gracefully:
 - **Configuration Validation**: Invalid configurations prevent agent attachment via Zod validation
 - **Graceful Shutdown**: Scheduler stops scheduling new tasks and aborts running tasks via abort controller
 - **Runtime Errors**: Execution errors are captured in run history with error message
-- **Cancelled Operations**: Interactive task creation throws `CommandFailedError` when cancelled (e.g., user cancels form)
+- **Cancelled Operations**: Interactive task creation throws `CommandFailedError` when cancelled (e.g., user cancels
+  form)
 - **Missing Task Name**: `/schedule remove` throws `CommandFailedError` if no name provided
-- **Task Exited Without Reason**: If task execution completes without proper event handling, marked as failed with "Task exited without any reason given"
+- **Task Exited Without Reason**: If task execution completes without proper event handling, marked as failed with "Task
+  exited without any reason given"
 - **Invalid Loop Command**: `/loop` throws `CommandFailedError` if command syntax is invalid
 - **Scheduler Already Running**: `runScheduler` logs warning and returns if scheduler is already running
 - **No Tasks Found**: `runScheduler` logs warning and returns if no tasks are configured
@@ -1131,13 +1153,13 @@ bun test:coverage
 
 **Test Files:**
 
-| File | Description |
-|------|-------------|
-| `utility/getNextRunTime.test.ts` | Tests for next run time calculation |
-| `utility/parseInterval.test.ts` | Tests for interval parsing |
-| `utility/checkDayConditions.test.ts` | Tests for day condition checking |
-| `utility/parseLoopCommand.test.ts` | Tests for loop command parsing |
-| `commands/schedule/loop.test.ts` | Tests for loop command parsing |
+| File                                 | Description                         |
+|--------------------------------------|-------------------------------------|
+| `utility/getNextRunTime.test.ts`     | Tests for next run time calculation |
+| `utility/parseInterval.test.ts`      | Tests for interval parsing          |
+| `utility/checkDayConditions.test.ts` | Tests for day condition checking    |
+| `utility/parseLoopCommand.test.ts`   | Tests for loop command parsing      |
+| `commands/schedule/loop.test.ts`     | Tests for loop command parsing      |
 
 **Configuration:**
 
@@ -1172,7 +1194,8 @@ Tests use `vitest` as the test runner. Configuration is in `vitest.config.ts`.
 
 ## Related Components
 
-- `@tokenring-ai/agent`: Core agent system that the scheduler attaches to. Provides state management, background tasks, and event handling.
+- `@tokenring-ai/agent`: Core agent system that the scheduler attaches to. Provides state management, background tasks,
+  and event handling.
 - `@tokenring-ai/chat`: Chat service that provides tool integration for programmatic task management.
 - `@tokenring-ai/app`: Base application framework for plugin registration and service management.
 - `@tokenring-ai/utility`: Shared utilities including `deepMerge` for configuration merging.

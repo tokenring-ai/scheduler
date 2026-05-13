@@ -3,11 +3,11 @@
   "description": "Cron-like service for triggering agent actions at specific intervals.",
   "version": "0.2.0",
   "dependencies": {
-    "@tokenring-ai/app": "0.2.0",
-    "@tokenring-ai/agent": "0.2.0",
-    "@tokenring-ai/chat": "0.2.0",
-    "@tokenring-ai/rpc": "0.2.0",
-    "@tokenring-ai/utility": "0.2.0",
+    "@tokenring-ai/app": "workspace:*",
+    "@tokenring-ai/agent": "workspace:*",
+    "@tokenring-ai/chat": "workspace:*",
+    "@tokenring-ai/rpc": "workspace:*",
+    "@tokenring-ai/utility": "workspace:*",
     "zod": "^4.3.6",
     "moment-timezone": "^0.6.1"
   },

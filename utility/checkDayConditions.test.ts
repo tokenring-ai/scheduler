@@ -1,7 +1,7 @@
 import moment from "moment-timezone";
-import {describe, expect, it} from "vitest";
-import type {ScheduledTask} from "../schema.ts";
-import {checkDayConditions} from "./checkDayConditions.ts";
+import { describe, expect, it } from "vitest";
+import type { ScheduledTask } from "../schema.ts";
+import { checkDayConditions } from "./checkDayConditions.ts";
 
 describe("checkDayConditions", () => {
   const timezone = "America/New_York";

@@ -1,7 +1,7 @@
-import {describe, expect, it, vi, beforeEach} from "vitest";
-import loop from "./loop.ts";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import SchedulerService from "../SchedulerService.ts";
-import {ScheduleExecutionState} from "../state/scheduleExecutionState.ts";
+import { ScheduleExecutionState } from "../state/scheduleExecutionState.ts";
+import loop from "./loop.ts";
 
 describe("/loop command", () => {
   const scheduler = {
@@ -20,7 +20,7 @@ describe("/loop command", () => {
       }),
       getState: vi.fn((state: unknown) => {
         if (state === ScheduleExecutionState) {
-          return {abortController: null};
+          return { abortController: null };
         }
         throw new Error("Unknown state");
       })
@@ -28,11 +28,11 @@ describe("/loop command", () => {
   });
 
   it("schedules a recurring prompt with a leading interval", async () => {
-    const result = await loop.execute({remainder: "5m check deployment", agent} as any);
+    const result = await loop.execute({ remainder: "5m check deployment", agent } as any);
 
     expect(scheduler.addTask).toHaveBeenCalledWith(
       expect.stringMatching(/^loop-[a-z0-9]{8}$/),
-      {message: "check deployment", repeat: "5 minutes", lastRunTime: expect.any(Number)},
+      { message: "check deployment", repeat: "5 minutes", lastRunTime: expect.any(Number) },
       agent
     );
     expect(scheduler.runScheduler).toHaveBeenCalledWith(agent);
@@ -40,24 +40,24 @@ describe("/loop command", () => {
   });
 
   it("uses the default interval when no interval is provided", async () => {
-    const result = await loop.execute({remainder: "check deployment", agent} as any);
+    const result = await loop.execute({ remainder: "check deployment", agent } as any);
 
     expect(scheduler.addTask).toHaveBeenCalledWith(
       expect.stringMatching(/^loop-[a-z0-9]{8}$/),
-      {message: "check deployment", repeat: "10 minutes", lastRunTime: expect.any(Number)},
+      { message: "check deployment", repeat: "10 minutes", lastRunTime: expect.any(Number) },
       agent
     );
     expect(result).toContain("every 10 minutes");
   });
 
   it("does not start the scheduler again when it is already running", async () => {
-    agent.getState.mockReturnValue({abortController: new AbortController()});
+    agent.getState.mockReturnValue({ abortController: new AbortController() });
 
-    await loop.execute({remainder: "check deployment every 2h", agent} as any);
+    await loop.execute({ remainder: "check deployment every 2h", agent } as any);
 
     expect(scheduler.addTask).toHaveBeenCalledWith(
       expect.stringMatching(/^loop-[a-z0-9]{8}$/),
-      {message: "check deployment", repeat: "2 hours", lastRunTime: expect.any(Number)},
+      { message: "check deployment", repeat: "2 hours", lastRunTime: expect.any(Number) },
       agent
     );
     expect(scheduler.runScheduler).not.toHaveBeenCalled();

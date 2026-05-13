@@ -1,7 +1,7 @@
 import moment from "moment-timezone";
-import {beforeEach, describe, expect, it} from "vitest";
-import type {ScheduledTask} from "../schema.ts";
-import {getNextRunTime} from "./getNextRunTime.ts";
+import { beforeEach, describe, expect, it } from "vitest";
+import type { ScheduledTask } from "../schema.ts";
+import { getNextRunTime } from "./getNextRunTime.ts";
 
 describe("getNextRunTime", () => {
   const timezone = "America/New_York";
@@ -18,7 +18,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: 0,
     };
-    
+
     const nextRun = getNextRunTime(task);
     expect(nextRun).toBeGreaterThanOrEqual(now);
     expect(nextRun).toBeLessThanOrEqual(now + 10_000);
@@ -32,7 +32,7 @@ describe("getNextRunTime", () => {
       lastRunTime: lastRun,
       timezone,
     };
-    
+
     const nextRun = getNextRunTime(task);
     expect(nextRun).toBeGreaterThanOrEqual(now);
     expect(nextRun).toBeLessThan(now + 20000_000);
@@ -45,7 +45,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: 0,
     };
-    
+
     const nextRun = getNextRunTime(task);
     expect(nextRun).toBeGreaterThanOrEqual(now);
   });
@@ -57,7 +57,7 @@ describe("getNextRunTime", () => {
       lastRunTime: now - 3600,
       timezone,
     };
-    
+
     const nextRun = getNextRunTime(task);
     expect(nextRun).toBeGreaterThanOrEqual(now);
   });
@@ -71,7 +71,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: 0,
     };
-    
+
     const nextRun = getNextRunTime(task);
     const nextRunMoment = moment.tz(nextRun!, timezone);
     expect(nextRunMoment.hour()).toEqual(9);
@@ -87,7 +87,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: lastRun / 1000, // Convert to seconds
     };
-    
+
     const nextRun = getNextRunTime(task);
     const nextRunMoment = moment.tz(nextRun!, timezone);
     // The test is checking if the hour is <= 17, but the implementation might return
@@ -108,7 +108,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: lastRun / 1000, // Convert to seconds
     };
-    
+
     const nextRun = getNextRunTime(task);
     const nextRunMoment = moment.tz(nextRun!, timezone);
     // The test is checking if the hour is within the window, but the implementation might return
@@ -126,7 +126,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: 0,
     };
-    
+
     const nextRun = getNextRunTime(task);
     const nextRunMoment = moment.tz(nextRun!, timezone);
     const dayOfWeek = nextRunMoment.day();
@@ -141,7 +141,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: 0,
     };
-    
+
     const nextRun = getNextRunTime(task);
     const nextRunMoment = moment.tz(nextRun!, timezone);
     expect(nextRunMoment.date()).toBe(15);
@@ -153,7 +153,7 @@ describe("getNextRunTime", () => {
       repeat: "invalid",
       timezone,
     };
-    
+
     const nextRun = getNextRunTime(task);
     expect(nextRun).toBeNull();
   });
@@ -164,7 +164,7 @@ describe("getNextRunTime", () => {
       timezone,
       lastRunTime: 0
     };
-    
+
     const nextRun = getNextRunTime(task);
     expect(nextRun).toBeLessThan(Date.now() + 20_000);
   });

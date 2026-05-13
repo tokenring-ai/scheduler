@@ -1,5 +1,5 @@
-import {describe, expect, it} from "vitest";
-import {parseLoopCommand} from "./parseLoopCommand.ts";
+import { describe, expect, it } from "vitest";
+import { parseLoopCommand } from "./parseLoopCommand.ts";
 
 describe("parseLoopCommand", () => {
   it("parses a leading shorthand interval", () => {

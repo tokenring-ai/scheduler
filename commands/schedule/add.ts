@@ -69,7 +69,7 @@ export default {
       scheduler.addTask(taskSpec.name, ScheduledTaskSchema.parse(task), agent);
       return `Task '${taskSpec.name}' added successfully`;
     } catch (error: unknown) {
-      throw new CommandFailedError(`Invalid task configuration: ${error instanceof Error ? error.message : String(error)}`);
+      throw new CommandFailedError(`Invalid task configuration: ${Error.isError(error) ? error.message : String(error)}`);
     }
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

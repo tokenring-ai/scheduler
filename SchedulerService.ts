@@ -2,7 +2,7 @@ import type Agent from "@tokenring-ai/agent/Agent";
 import { AgentEventState } from "@tokenring-ai/agent/state/agentEventState";
 import type TokenRingApp from "@tokenring-ai/app";
 import type { TokenRingService } from "@tokenring-ai/app/types";
-import deepMerge from "@tokenring-ai/utility/object/deepMerge";
+import deepClone from "@tokenring-ai/utility/object/deepClone";
 import isEmpty from "@tokenring-ai/utility/object/isEmpty";
 import type { z } from "zod";
 import { type ScheduledTask, SchedulerAgentConfigSchema, type SchedulerConfigSchema } from "./schema.ts";
@@ -20,7 +20,7 @@ export default class SchedulerService implements TokenRingService {
   ) {}
 
   attach(agent: Agent): void {
-    const config = deepMerge(this.options.agentDefaults, agent.getAgentConfigSlice("scheduler", SchedulerAgentConfigSchema));
+    const config = deepClone(this.options.agentDefaults, agent.getAgentConfigSlice("scheduler", SchedulerAgentConfigSchema));
 
     agent.initializeState(ScheduleTaskState, config);
     agent.initializeState(ScheduleExecutionState, config);

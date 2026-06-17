@@ -9,7 +9,7 @@ describe("/loop command", () => {
     runScheduler: vi.fn(),
   };
 
-  let agent: any;
+  let agent: Agent;
 
   beforeEach(() => {
     vi.clearAllMocks();

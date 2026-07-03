@@ -14,7 +14,7 @@ const INTERVALS: Record<string, number> = {
 };
 
 export function parseInterval(interval: string): number | null {
-  const match = interval.match(/^\s*(\d+)\s+(\w+)\s*$/);
+  const match = interval.match(/^\s*(\d+)\s+(\w+)\s*$/) as [string, string, string] | undefined;
   if (!match) return null;
   const [, num, unit] = match;
   const multiplier = INTERVALS[unit.toLowerCase()];

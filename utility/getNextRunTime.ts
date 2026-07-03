@@ -32,7 +32,7 @@ export function getNextRunTime(task: ScheduledTask): number | null {
     if (!checkDayConditions(task, checkDay)) continue;
 
     if (task.after) {
-      const [afterHour, afterMin] = task.after.split(":").map(Number);
+      const [afterHour, afterMin] = task.after.split(":").map(Number) as [number, number];
       const afterTime = checkDay.clone().hour(afterHour).minute(afterMin).second(0);
 
       // If current checkDay is before the 'from' time, move it to 'from' time
@@ -43,7 +43,7 @@ export function getNextRunTime(task: ScheduledTask): number | null {
 
     // Check if candidate time is after "to" window
     if (task.before) {
-      const [beforeHour, beforeMin] = task.before.split(":").map(Number);
+      const [beforeHour, beforeMin] = task.before.split(":").map(Number) as [number, number];
       const beforeTime = checkDay.clone().hour(beforeHour).minute(beforeMin).second(0);
 
       if (checkDay.isAfter(beforeTime)) {

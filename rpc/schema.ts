@@ -1,4 +1,5 @@
-import { AgentNotFoundSchema } from "@tokenring-ai/agent/schema";
+import { AgentNotFoundSchema } from "@tokenring-ai/rpc/types";
+import { SuccessSchema } from "@tokenring-ai/rpc/types";
 import type { RPCSchema } from "@tokenring-ai/rpc/types";
 import { z } from "zod";
 
@@ -36,8 +37,7 @@ export default {
         agentId: z.string(),
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           tasks: z.record(z.string(), ScheduledTaskSchema),
           count: z.number(),
         }),
@@ -52,8 +52,7 @@ export default {
         task: ScheduledTaskSchema,
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           success: z.boolean(),
           message: z.string(),
         }),
@@ -67,8 +66,7 @@ export default {
         name: z.string(),
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           success: z.boolean(),
           message: z.string(),
         }),
@@ -81,8 +79,7 @@ export default {
         agentId: z.string(),
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           running: z.boolean(),
           autoStart: z.boolean(),
           executions: z.record(z.string(), ExecutionEntrySchema),
@@ -96,8 +93,7 @@ export default {
         agentId: z.string(),
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           success: z.boolean(),
           message: z.string(),
         }),
@@ -110,8 +106,7 @@ export default {
         agentId: z.string(),
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           success: z.boolean(),
           message: z.string(),
         }),
@@ -125,8 +120,7 @@ export default {
         taskName: z.string().exactOptional(),
       }),
       result: z.discriminatedUnion("status", [
-        z.object({
-          status: z.literal("success"),
+        SuccessSchema.extend({
           history: z.record(z.string(), z.array(TaskRunHistorySchema)),
         }),
         AgentNotFoundSchema,

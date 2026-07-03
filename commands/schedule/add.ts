@@ -59,9 +59,11 @@ export default {
     });
     if (result === null) throw new CommandFailedError("Task creation cancelled");
     const taskSpec = result["Task Specification"];
+    if (!taskSpec) throw new CommandFailedError("Task specification is missing");
+
     const task: z.input<typeof ScheduledTaskSchema> = {
       message: taskSpec.message,
-      ...(taskSpec.repeat[0] === "once" ? { once: true } : { repeat: taskSpec.repeat[0] }),
+      ...(taskSpec.repeat[0] === "once" ? { once: true } : { repeat: taskSpec.repeat[0]! }),
       ...(taskSpec.after && { after: taskSpec.after }),
       ...(taskSpec.before && { before: taskSpec.before }),
     };

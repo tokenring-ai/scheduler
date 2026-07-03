@@ -16,8 +16,8 @@ function normalizeLoopInterval(rawInterval: string): Omit<ParsedLoopCommand, "pr
   const match = rawInterval.trim().match(new RegExp(`^${LOOP_INTERVAL_PATTERN}$`, "i"));
   if (!match) return null;
 
-  const value = Number.parseInt(match[1], 10);
-  const unit = match[2].toLowerCase();
+  const value = Number.parseInt(match[1]!, 10);
+  const unit = match[2]!.toLowerCase();
 
   if (!Number.isFinite(value) || value <= 0) return null;
 
@@ -59,7 +59,7 @@ export function parseLoopCommand(input: string): ParsedLoopCommand | null {
   if (!trimmed) return null;
   if (normalizeLoopInterval(trimmed)) return null;
 
-  const leadingMatch = trimmed.match(new RegExp(`^${LOOP_INTERVAL_PATTERN}\\s+([\\s\\S]+)$`, "i"));
+  const leadingMatch = trimmed.match(new RegExp(`^${LOOP_INTERVAL_PATTERN}\\s+([\\s\\S]+)$`, "i")) as [string, string, string, string] | undefined;
   if (leadingMatch) {
     const parsedInterval = normalizeLoopInterval(`${leadingMatch[1]} ${leadingMatch[2]}`);
     const prompt = leadingMatch[3].trim();
@@ -71,7 +71,7 @@ export function parseLoopCommand(input: string): ParsedLoopCommand | null {
     };
   }
 
-  const trailingMatch = trimmed.match(new RegExp(`^([\\s\\S]+?)\\s+every\\s+${LOOP_INTERVAL_PATTERN}$`, "i"));
+  const trailingMatch = trimmed.match(new RegExp(`^([\\s\\S]+?)\\s+every\\s+${LOOP_INTERVAL_PATTERN}$`, "i")) as [string, string, string, string] | undefined;
   if (trailingMatch) {
     const prompt = trailingMatch[1].trim();
     const parsedInterval = normalizeLoopInterval(`${trailingMatch[2]} ${trailingMatch[3]}`);

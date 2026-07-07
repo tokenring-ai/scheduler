@@ -2,6 +2,7 @@ import type Agent from "@tokenring-ai/agent/Agent";
 import { AgentEventState } from "@tokenring-ai/agent/state/agentEventState";
 import type TokenRingApp from "@tokenring-ai/app";
 import type { TokenRingService } from "@tokenring-ai/app/types";
+import { ConfigurationError } from "@tokenring-ai/app/types";
 import deepClone from "@tokenring-ai/utility/object/deepClone";
 import isEmpty from "@tokenring-ai/utility/object/isEmpty";
 import type { z } from "zod";
@@ -106,7 +107,7 @@ export default class SchedulerService implements TokenRingService {
       agent.mutateState(ScheduleTaskState, taskState => {
         const task = taskState.tasks.get(name);
         if (!task) {
-          throw new Error(`Task not found: ${name}`);
+          throw new ConfigurationError(this.name, `Task not found: ${name}`);
         }
         const execEntry = execState.tasks.get(name);
         if (execEntry) {

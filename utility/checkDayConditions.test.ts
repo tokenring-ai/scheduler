@@ -10,6 +10,7 @@ describe("checkDayConditions", () => {
     const task: ScheduledTask = {
       message: "test",
       timezone,
+      lastRunTime: 0,
     };
     const now = moment().tz(timezone);
     expect(checkDayConditions(task, now)).toBe(true);
@@ -20,6 +21,7 @@ describe("checkDayConditions", () => {
       message: "test",
       dayOfMonth: 15,
       timezone,
+      lastRunTime: 0,
     };
     const day15 = moment().tz(timezone).date(15);
     const day20 = moment().tz(timezone).date(20);
@@ -32,6 +34,7 @@ describe("checkDayConditions", () => {
       message: "test",
       weekdays: "mon,wed,fri",
       timezone,
+      lastRunTime: 0,
     };
     const monday = moment().tz(timezone).day(1);
     const tuesday = moment().tz(timezone).day(2);

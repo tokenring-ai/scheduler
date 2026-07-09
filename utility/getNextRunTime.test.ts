@@ -152,6 +152,7 @@ describe("getNextRunTime", () => {
       message: "test",
       repeat: "invalid",
       timezone,
+      lastRunTime: 0,
     };
 
     const nextRun = getNextRunTime(task);

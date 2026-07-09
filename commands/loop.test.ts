@@ -1,3 +1,4 @@
+import type { Agent } from "@tokenring-ai/agent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SchedulerService from "../SchedulerService.ts";
 import { ScheduleExecutionState } from "../state/scheduleExecutionState.ts";
@@ -24,7 +25,7 @@ describe("/loop command", () => {
         }
         throw new Error("Unknown state");
       })
-    };
+    } as unknown as Agent;
   });
 
   it("schedules a recurring prompt with a leading interval", async () => {
@@ -51,7 +52,7 @@ describe("/loop command", () => {
   });
 
   it("does not start the scheduler again when it is already running", async () => {
-    agent.getState.mockReturnValue({ abortController: new AbortController() });
+    vi.mocked(agent.getState).mockReturnValue({ abortController: new AbortController() } as any);
 
     await loop.execute({ remainder: "check deployment every 2h", agent } as any);
 

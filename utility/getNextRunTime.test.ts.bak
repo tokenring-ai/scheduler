@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "bun:test";
 import moment from "moment-timezone";
+import { beforeEach, describe, expect, it } from "bun:test";
 import type { ScheduledTask } from "../schema.ts";
 import { getNextRunTime } from "./getNextRunTime.ts";
 
@@ -89,7 +89,7 @@ describe("getNextRunTime", () => {
     };
 
     const nextRun = getNextRunTime(task);
-
+    const nextRunMoment = moment.tz(nextRun!, timezone);
     // The test is checking if the hour is <= 17, but the implementation might return
     // a time that's outside the window if the current time is past the "before" time.
     // This test is flaky because it depends on the current time.
@@ -110,7 +110,7 @@ describe("getNextRunTime", () => {
     };
 
     const nextRun = getNextRunTime(task);
-
+    const nextRunMoment = moment.tz(nextRun!, timezone);
     // The test is checking if the hour is within the window, but the implementation might return
     // a time that's outside the window if the current time is past the "before" time.
     // This test is flaky because it depends on the current time.
@@ -163,7 +163,7 @@ describe("getNextRunTime", () => {
     const task: ScheduledTask = {
       message: "test",
       timezone,
-      lastRunTime: 0,
+      lastRunTime: 0
     };
 
     const nextRun = getNextRunTime(task);

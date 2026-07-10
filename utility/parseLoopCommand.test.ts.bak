@@ -31,7 +31,7 @@ describe("parseLoopCommand", () => {
       prompt: "check deployment",
       repeat: "1 minute",
       displayInterval: "1 minute",
-      note: "Rounded 30 seconds up to 1 minute to match minute-based scheduling.",
+      note: "Rounded 30 seconds up to 1 minute to match minute-based scheduling."
     });
   });
 

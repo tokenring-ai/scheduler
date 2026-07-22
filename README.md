@@ -1163,7 +1163,6 @@ bun test:coverage
 
 **Configuration:**
 
-Tests use `vitest` as the test runner. Configuration is in `vitest.config.ts`.
 
 ## Dependencies
 
@@ -1186,7 +1185,7 @@ Tests use `vitest` as the test runner. Configuration is in `vitest.config.ts`.
 ```json
 {
   "devDependencies": {
-    "vitest": "^4.1.1",
+    "bun": "latest",
     "typescript": "^6.0.2"
   }
 }

@@ -1,5 +1,5 @@
 import type Agent from "@tokenring-ai/agent/Agent";
-import type { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
+import type { TokenRingToolDefinition, TokenRingToolResult } from "@tokenring-ai/chat/schema";
 import { stripUndefinedKeys } from "@tokenring-ai/utility/object/stripObject";
 import { z } from "zod";
 import SchedulerService from "../SchedulerService.ts";
@@ -8,7 +8,7 @@ import getSchedule from "./getSchedule.ts";
 const name = "scheduler_add_task";
 const displayName = "Scheduler/add_task";
 
-function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent) {
+function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent): TokenRingToolResult {
   const scheduler = agent.requireServiceByType(SchedulerService);
 
   scheduler.addTask(
@@ -24,7 +24,11 @@ function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent)
     agent,
   );
 
-  return `Scheduled task '${taskName}' added successfully.\n\n` + getSchedule.execute({}, agent);
+  const schedule = getSchedule.execute({}, agent);
+  return {
+    message: `**Scheduler** Added scheduled task ${taskName}`,
+    result: `Scheduled task '${taskName}' added successfully.\n\n` + schedule.result,
+  };
 }
 
 const description =

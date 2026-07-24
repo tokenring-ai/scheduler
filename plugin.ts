@@ -27,5 +27,5 @@ export default {
     });
     app.addServices(new SchedulerService(app, config.scheduler));
   },
-  config: packageConfigSchema,
+  configSchema: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;

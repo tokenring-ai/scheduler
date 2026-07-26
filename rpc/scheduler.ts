@@ -13,8 +13,9 @@ export default createRPCEndpoint(SchedulerRpcSchema, {
     if (!agent) {
       return { status: "agentNotFound" };
     }
-    const tasks = Object.fromEntries(agent.getState(ScheduleTaskState).tasks.entries());
-    return { status: "success", tasks, count: Object.keys(tasks).length };
+
+    const { tasks } = agent.getState(ScheduleTaskState);
+    return { status: "success", tasks: tasks.toPlainObject(), count: tasks.size };
   },
 
   addTask(args, app: TokenRingApp) {
@@ -42,7 +43,7 @@ export default createRPCEndpoint(SchedulerRpcSchema, {
     }
     const execState = agent.getState(ScheduleExecutionState);
     const executions = Object.fromEntries(
-      [...execState.tasks.entries()].map(([name, entry]) => [
+      execState.tasks.mapEntries(([name, entry]) => [
         name,
         stripUndefinedKeys({
           nextRunTime: entry.nextRunTime,
@@ -86,6 +87,6 @@ export default createRPCEndpoint(SchedulerRpcSchema, {
     if (args.taskName) {
       return { status: "success", history: { [args.taskName]: history.get(args.taskName) ?? [] } };
     }
-    return { status: "success", history: Object.fromEntries(history.entries()) };
+    return { status: "success", history: history.toPlainObject() };
   },
 });

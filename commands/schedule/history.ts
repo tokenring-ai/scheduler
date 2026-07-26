@@ -15,7 +15,7 @@ export default {
   execute: ({ agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const taskState = agent.getState(ScheduleTaskState);
     const lines = ["=== Task Execution History ===\n"];
-    for (const [taskName] of taskState.tasks.entries()) {
+    for (const [taskName] of taskState.tasks) {
       lines.push(`**${taskName}**`);
       const history = taskState.history.get(taskName);
       if (history?.length) {

@@ -19,7 +19,7 @@ function execute(_args: z.output<typeof inputSchema>, agent: Agent): TokenRingTo
   }
 
   const taskList = [`The current date and time is ${new Date().toLocaleString()}, and the following tasks are scheduled`];
-  for (const [taskName, task] of taskState.tasks.entries()) {
+  for (const [taskName, task] of taskState.tasks) {
     const execEntry = executionState.tasks.get(taskName);
     const nextRun = execEntry?.nextRunTime ? new Date(execEntry.nextRunTime).toLocaleString() : "";
     const lastRun = task.lastRunTime ? new Date(task.lastRunTime).toLocaleString() : "Never";

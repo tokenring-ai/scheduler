@@ -1,4 +1,5 @@
 import { AgentStateSlice } from "@tokenring-ai/agent/types";
+import EnhancedMap from "@tokenring-ai/utility/map/enhancedMap";
 import { z } from "zod";
 
 import { type ScheduledTask, ScheduledTaskSchema, type SchedulerAgentConfigSchema } from "../schema.ts";
@@ -15,22 +16,22 @@ const serializationSchema = z.object({
 });
 
 export class ScheduleTaskState extends AgentStateSlice<typeof serializationSchema> {
-  tasks: Map<string, ScheduledTask>;
-  history = new Map<string, TaskRunHistory[]>();
+  tasks: EnhancedMap<string, ScheduledTask>;
+  history = new EnhancedMap<string, TaskRunHistory[]>();
 
   constructor(readonly initialConfig: z.output<typeof SchedulerAgentConfigSchema>) {
     super("ScheduleTaskState", serializationSchema);
-    this.tasks = new Map(Object.entries(initialConfig.tasks));
+    this.tasks = EnhancedMap.fromPlainObject(this.initialConfig.tasks);
   }
 
   serialize(): z.output<typeof serializationSchema> {
     return {
-      tasks: Object.fromEntries(this.tasks.entries()),
+      tasks: this.tasks.toPlainObject(),
     };
   }
 
   deserialize(data: z.output<typeof serializationSchema>): void {
-    this.tasks = new Map(Object.entries(data.tasks));
+    this.tasks = EnhancedMap.fromPlainObject(data.tasks);
   }
 
   show(): string {

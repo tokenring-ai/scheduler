@@ -64,7 +64,7 @@ export default class SchedulerService implements TokenRingService {
       }
       agent.mutateState(ScheduleExecutionState, state => {
         state.abortController = null;
-        for (const [taskName, task] of state.tasks.entries()) {
+        for (const [taskName, task] of state.tasks) {
           if (task.timer) {
             agent.debugMessage(`Cancelling timer for task ${taskName}`);
             clearTimeout(task.timer);
@@ -126,7 +126,7 @@ export default class SchedulerService implements TokenRingService {
       const now = Date.now();
 
       agent.mutateState(ScheduleExecutionState, executionState => {
-        for (const [taskName, task] of taskState.tasks.entries()) {
+        for (const [taskName, task] of taskState.tasks) {
           const executionEntry = executionState.tasks.get(taskName);
           if (executionEntry) {
             // Task is already in execution state, check if it needs to be rescheduled
@@ -211,9 +211,7 @@ export default class SchedulerService implements TokenRingService {
   private handleTaskFinished(name: string, status: "completed" | "failed", message: string, schedulerAgent: Agent): void {
     const now = Date.now();
     const executionEntry = schedulerAgent.mutateState(ScheduleExecutionState, state => {
-      const executionEntry = state.tasks.get(name);
-      state.tasks.delete(name);
-      return executionEntry;
+      return state.tasks.deleteAndReturnItem(name);
     });
 
     schedulerAgent.mutateState(ScheduleTaskState, state => {

@@ -18,7 +18,7 @@ export default {
     const taskState = agent.getState(ScheduleTaskState);
     const executionState = agent.getState(ScheduleExecutionState);
     const lines = ["=== Scheduled Tasks ===\n"];
-    for (const [taskName, task] of taskState.tasks.entries()) {
+    for (const [taskName, task] of taskState.tasks) {
       const execEntry = executionState.tasks.get(taskName);
       lines.push(
         `**${taskName}**`,

@@ -1,4 +1,5 @@
 import { AgentStateSlice } from "@tokenring-ai/agent/types";
+import EnhancedMap from "@tokenring-ai/utility/map/enhancedMap";
 import { z } from "zod";
 import type { SchedulerAgentConfigSchema } from "../schema.ts";
 
@@ -15,7 +16,7 @@ const serializationSchema = z.object({
 });
 
 export class ScheduleExecutionState extends AgentStateSlice<typeof serializationSchema> {
-  tasks = new Map<string, ExecutionScheduleEntry>();
+  tasks = new EnhancedMap<string, ExecutionScheduleEntry>();
   autoStart: boolean;
   abortController: AbortController | null = null;
 

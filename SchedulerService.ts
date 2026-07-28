@@ -5,8 +5,7 @@ import type { TokenRingService } from "@tokenring-ai/app/types";
 import { ConfigurationError } from "@tokenring-ai/app/types";
 import deepClone from "@tokenring-ai/utility/object/deepClone";
 import isEmpty from "@tokenring-ai/utility/object/isEmpty";
-import type { z } from "zod";
-import { type ScheduledTask, SchedulerAgentConfigSchema, type SchedulerConfigSchema } from "./schema.ts";
+import { type ParsedSchedulerConfig, type ScheduledTask, SchedulerAgentConfigSchema, SchedulerConfigSchema } from "./schema.ts";
 import { ScheduleExecutionState } from "./state/scheduleExecutionState.ts";
 import { ScheduleTaskState } from "./state/scheduleTaskState.ts";
 import { getNextRunTime } from "./utility/getNextRunTime.ts";
@@ -15,10 +14,13 @@ export default class SchedulerService implements TokenRingService {
   readonly name = "SchedulerService";
   description = "Schedules AI agents to run at specified intervals";
 
-  constructor(
-    private app: TokenRingApp,
-    private options: z.output<typeof SchedulerConfigSchema>,
-  ) {}
+  private options = SchedulerConfigSchema.parse({});
+
+  constructor(private app: TokenRingApp) {}
+
+  reconfigure(newConfig: ParsedSchedulerConfig): void {
+    this.options = newConfig;
+  }
 
   attach(agent: Agent): void {
     const config = deepClone(this.options.agentDefaults, agent.getAgentConfigSlice("scheduler", SchedulerAgentConfigSchema));

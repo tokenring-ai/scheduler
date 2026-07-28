@@ -19,13 +19,16 @@ export default {
   displayName: "Agent Scheduler",
   version: packageJSON.version,
   description: packageJSON.description,
-  install(app, config) {
+  install(app) {
     app.waitForService(ChatService, chatService => chatService.addTools(...tools));
     app.waitForService(AgentCommandService, agentCommandService => agentCommandService.addAgentCommands([...agentCommands]));
     app.waitForService(RpcService, rpcService => {
       rpcService.registerEndpoint(schedulerRPC);
     });
-    app.addServices(new SchedulerService(app, config.scheduler));
+    app.addServices(new SchedulerService(app));
+  },
+  reconfigure(app, config) {
+    app.requireService(SchedulerService).reconfigure(config.scheduler);
   },
   configSchema: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;

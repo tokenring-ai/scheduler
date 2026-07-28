@@ -54,4 +54,8 @@ export const SchedulerConfigSchema = z
   .object({
     agentDefaults: SchedulerAgentConfigSchema.meta({ label: "Agent Defaults" } satisfies ConfigFieldMeta),
   })
+  .prefault({})
   .meta({ label: "Scheduler", description: "Time-based task scheduling for agents" } satisfies ConfigFieldMeta);
+
+export type SchedulerConfig = z.input<typeof SchedulerConfigSchema>;
+export type ParsedSchedulerConfig = z.output<typeof SchedulerConfigSchema>;

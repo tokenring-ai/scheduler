@@ -7,7 +7,7 @@ const name = "scheduler_remove_task";
 const displayName = "Scheduler/removeTask";
 
 function execute({ taskName }: z.output<typeof inputSchema>, agent: Agent): TokenRingToolResult {
-  const scheduler = agent.requireServiceByType(SchedulerService);
+  const scheduler = agent.requireService(SchedulerService);
 
   scheduler.removeTask(taskName, agent);
 

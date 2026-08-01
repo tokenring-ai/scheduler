@@ -22,10 +22,10 @@ export default {
 
 /schedule remove myTask`,
   inputSchema,
-  execute: ({ positionals, agent }: AgentCommandInputType<typeof inputSchema>): string => {
-    const name = positionals.name;
+  execute: ({ args, agent }: AgentCommandInputType<typeof inputSchema>): string => {
+    const name = args.name;
     if (!name) throw new CommandFailedError("Usage: /scheduler remove <name>");
-    agent.requireServiceByType(SchedulerService).removeTask(name, agent);
+    agent.requireService(SchedulerService).removeTask(name, agent);
     return `Task removed successfully`;
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

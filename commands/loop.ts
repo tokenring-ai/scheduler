@@ -40,7 +40,7 @@ If no interval is provided, the prompt runs every 10 minutes.
       throw new CommandFailedError("Usage: /loop [interval] <prompt> or /loop <prompt> every <interval>");
     }
 
-    const scheduler = agent.requireServiceByType(SchedulerService);
+    const scheduler = agent.requireService(SchedulerService);
     const taskName = createLoopTaskName();
 
     scheduler.addTask(

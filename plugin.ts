@@ -20,12 +20,12 @@ export default {
   version: packageJSON.version,
   description: packageJSON.description,
   install(app) {
-    app.waitForService(ChatService, chatService => chatService.addTools(...tools));
+    app.waitForService(ChatService, chatService => chatService.addTools(tools));
     app.waitForService(AgentCommandService, agentCommandService => agentCommandService.addAgentCommands([...agentCommands]));
     app.waitForService(RpcService, rpcService => {
       rpcService.registerEndpoint(schedulerRPC);
     });
-    app.addServices(new SchedulerService(app));
+    app.addService(new SchedulerService(app));
   },
   reconfigure(app, config) {
     app.requireService(SchedulerService).reconfigure(config.scheduler);

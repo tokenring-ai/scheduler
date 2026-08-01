@@ -13,7 +13,7 @@ export default {
 /schedule start`,
   inputSchema,
   execute: ({ agent }: AgentCommandInputType<typeof inputSchema>): string => {
-    agent.requireServiceByType(SchedulerService).runScheduler(agent);
+    agent.requireService(SchedulerService).runScheduler(agent);
     return "Scheduler started";
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

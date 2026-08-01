@@ -16,7 +16,7 @@ export default {
 /schedule add`,
   inputSchema,
   execute: async ({ agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
-    const scheduler = agent.requireServiceByType(SchedulerService);
+    const scheduler = agent.requireService(SchedulerService);
     const result = await agent.askQuestion({
       message: "Please provide details for the scheduled task:",
       question: {

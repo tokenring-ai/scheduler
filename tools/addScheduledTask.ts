@@ -9,7 +9,7 @@ const name = "scheduler_add_task";
 const displayName = "Scheduler/add_task";
 
 function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent): TokenRingToolResult {
-  const scheduler = agent.requireServiceByType(SchedulerService);
+  const scheduler = agent.requireService(SchedulerService);
 
   scheduler.addTask(
     taskName,

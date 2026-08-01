@@ -15,7 +15,7 @@ describe("/loop command", () => {
   beforeEach(() => {
     mock.clearAllMocks();
     agent = {
-      requireServiceByType: mock((service: unknown) => {
+      requireService: mock((service: unknown) => {
         if (service === SchedulerService) return scheduler;
         throw new Error("Unknown service");
       }),

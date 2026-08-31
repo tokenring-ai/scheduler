@@ -9,6 +9,8 @@ export function getNextRunTime(task: ScheduledTask): number | null {
   const tz = task.timezone || moment.tz.guess();
   const now = moment.tz(tz);
 
+  if (task.once && task.lastRunTime) return null;
+
   let earliestRunTime: moment.Moment;
 
   if (task.repeat) {

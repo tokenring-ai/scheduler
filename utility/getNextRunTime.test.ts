@@ -50,6 +50,24 @@ describe("getNextRunTime", () => {
     expect(nextRun).toBeGreaterThanOrEqual(now);
   });
 
+  it("once flag schedules first run and does not reschedule after lastRunTime", () => {
+    const pending: ScheduledTask = {
+      message: "test",
+      once: true,
+      timezone,
+      lastRunTime: 0,
+    };
+    const firstRun = getNextRunTime(pending);
+    expect(firstRun).toBeGreaterThanOrEqual(now);
+    expect(firstRun).toBeLessThanOrEqual(now + 10_000);
+
+    const alreadyRan: ScheduledTask = {
+      ...pending,
+      lastRunTime: now,
+    };
+    expect(getNextRunTime(alreadyRan)).toBeNull();
+  });
+
   it("once with lastRunTime schedules next day", () => {
     const task: ScheduledTask = {
       message: "test",

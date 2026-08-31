@@ -6,6 +6,10 @@ export const ScheduledTaskSchema = z.object({
     .string()
     .exactOptional()
     .meta({ description: "Cron-style repeat expression" } satisfies ConfigFieldMeta),
+  once: z
+    .boolean()
+    .exactOptional()
+    .meta({ description: "Run this task only once" } satisfies ConfigFieldMeta),
   after: z
     .string()
     .exactOptional()

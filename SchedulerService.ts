@@ -105,21 +105,27 @@ export default class SchedulerService implements TokenRingService {
   }
 
   removeTask(name: string, agent: Agent): void {
+    const taskState = agent.getState(ScheduleTaskState);
+    if (!taskState.tasks.has(name)) {
+      throw new ConfigurationError(this.name, `Task not found: ${name}`);
+    }
+
     agent.mutateState(ScheduleExecutionState, execState => {
-      agent.mutateState(ScheduleTaskState, taskState => {
-        const task = taskState.tasks.get(name);
-        if (!task) {
-          throw new ConfigurationError(this.name, `Task not found: ${name}`);
+      const execEntry = execState.tasks.get(name);
+      if (execEntry) {
+        if (execEntry.timer) {
+          clearTimeout(execEntry.timer);
         }
-        const execEntry = execState.tasks.get(name);
-        if (execEntry) {
-          if (execEntry.timer) {
-            clearTimeout(execEntry.timer);
-            execState.tasks.delete(name);
-          }
+        if (execEntry.abortController) {
+          agent.debugMessage(`Aborting running task ${name} during removal`);
+          execEntry.abortController.abort();
         }
-        taskState.tasks.delete(name);
-      });
+        execState.tasks.delete(name);
+      }
+    });
+
+    agent.mutateState(ScheduleTaskState, state => {
+      state.tasks.delete(name);
     });
   }
 
@@ -152,6 +158,14 @@ export default class SchedulerService implements TokenRingService {
               });
             }
           }
+        }
+
+        for (const execName of executionState.tasks.keysArray()) {
+          if (taskState.tasks.has(execName)) continue;
+          const entry = executionState.tasks.get(execName);
+          if (entry?.timer) clearTimeout(entry.timer);
+          if (entry?.abortController) entry.abortController.abort();
+          executionState.tasks.delete(execName);
         }
       });
     }
@@ -194,7 +208,6 @@ export default class SchedulerService implements TokenRingService {
             case "agent.response":
               if (event.requestId === requestId) {
                 this.handleTaskFinished(name, event.status === "success" ? "completed" : "failed", event.message, agent);
-                agent.config.idleTimeout = 3600_000;
                 return;
               }
           }

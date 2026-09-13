@@ -13,6 +13,7 @@
   },
   "exports": {
     ".": "./index.ts",
+    "./frontend/*": "./frontend/*",
     "./*": "./*.ts"
   },
   "license": "MIT",

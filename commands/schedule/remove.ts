@@ -24,7 +24,7 @@ export default {
   inputSchema,
   execute: ({ args, agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const name = args.name;
-    if (!name) throw new CommandFailedError("Usage: /scheduler remove <name>");
+    if (!name) throw new CommandFailedError("Usage: /schedule remove <name>");
     agent.requireService(SchedulerService).removeTask(name, agent);
     return `Task removed successfully`;
   },

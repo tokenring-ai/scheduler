@@ -52,12 +52,30 @@ standalone.
 - **Programmatic API**: Tools for integrating scheduling into agent workflows (`scheduler_add_task`,
   `scheduler_remove_task`, `scheduler_get_schedule`)
 - **RPC Interface**: Remote procedure call endpoint at `/rpc/scheduler` for external task management
-- **State Persistence**: Task configurations persist across agent restarts (execution history is not persisted)
+- **State Persistence**: Task configurations and run history persist across agent restarts; history keeps the newest
+  `maxHistoryPerTask` runs per task (default 50)
+- **Edit, Pause and Resume**: Tasks can be edited in place (keeping their last-run bookkeeping) and paused with
+  `enabled: false`; a paused task stays in the schedule but never fires until resumed
+- **Next-Run Preview**: The `previewNextRun` RPC computes a task's next run with the scheduler's own logic; the
+  Tasks view's add/edit form shows it live
 - **Graceful Shutdown**: Clean task cancellation and state cleanup via abort controllers
 - **Loop Commands**: Quick scheduling of repeated prompts via `/loop` command
 - **Background Task Execution**: Tasks run in background without blocking agent operations
 - **Event-Driven Architecture**: Watches for task state changes and updates schedules automatically
 - **Error Handling**: Comprehensive error handling with detailed logging and history recording
+
+## RPC
+
+Endpoint `/rpc/scheduler`: `getTasks`, `addTask`, `updateTask` (replace a task's definition, keeping `lastRunTime`),
+`setTaskEnabled` (pause/resume), `removeTask`, `runTask` (run now), `getStatus`, `startScheduler`, `stopScheduler`,
+`getHistory`, `clearHistory` (one task via `taskName`, or all) and `previewNextRun` (next run time for an unsaved task
+definition, `null` when it would not run within 30 days).
+
+## Web UI
+
+The Scheduler dashboard's **Tasks** view adds, edits, pauses/resumes, runs and removes tasks; its form shows a live
+"Next run" preview. The **Runs** view lists run history filtered by task and status, and its **Clear history** action
+clears the filtered task's history (or every task's) after confirming.
 
 ## Chat Commands
 
@@ -115,6 +133,7 @@ scheduler:
 | Option                    | Type     | Default | Description                                                            |
 |---------------------------|----------|---------|------------------------------------------------------------------------|
 | `agentDefaults.autoStart` | `boolean` | `true`  | Whether to automatically start the scheduler when tasks are configured |
+| `agentDefaults.maxHistoryPerTask` | `number` | `50` | Run history entries kept (and persisted) per task; older runs are dropped |
 | `agentDefaults.tasks`     | `object` | `{}`    | Initial task configurations keyed by task name                         |
 
 ### ScheduledTask Schema
@@ -129,6 +148,7 @@ scheduler:
 | `dayOfMonth`  | `number` | No       | Specific day of month (1-31)                                        |
 | `lastRunTime` | `number` | No       | Timestamp of last execution (default: 0, hidden from UI)            |
 | `timezone`    | `string` | No       | IANA timezone string (e.g., 'America/New_York', 'UTC')              |
+| `enabled`     | `boolean` | No      | `false` pauses the task; omitted means enabled                      |
 
 **Note:** Tasks without `repeat` run only once. For one-time tasks, omit the `repeat` field. The task will run on the
 next available day that matches any day conditions (weekdays, dayOfMonth) and falls within the time window

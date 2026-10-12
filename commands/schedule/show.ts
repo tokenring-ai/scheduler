@@ -25,7 +25,7 @@ export default {
         indent(
           [
             `Message: ${task.message}`,
-            `Status: ${execEntry?.status ?? "Not scheduled"}`,
+            `Status: ${task.enabled === false ? "Paused" : (execEntry?.status ?? "Not scheduled")}`,
             `Next Run: ${execEntry?.nextRunTime ? new Date(execEntry.nextRunTime).toLocaleString() : "Not scheduled"}`,
             `Last Run: ${task.lastRunTime ? new Date(task.lastRunTime).toLocaleString() : "Never"}`,
           ],

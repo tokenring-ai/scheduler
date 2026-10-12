@@ -48,8 +48,12 @@ describe("formatRelativeTime", () => {
 });
 
 describe("formatScheduleSummary", () => {
-  test("one-time default", () => {
-    expect(formatScheduleSummary({})).toBe("One-time");
+  test("once flag is labelled one-time", () => {
+    expect(formatScheduleSummary({ once: true })).toBe("One-time");
+  });
+
+  test("no repeat and no once runs daily (matches getNextRunTime)", () => {
+    expect(formatScheduleSummary({})).toBe("Daily");
   });
 
   test("repeat with window and weekdays", () => {
@@ -65,7 +69,7 @@ describe("formatScheduleSummary", () => {
   });
 
   test("capitalizes comma-separated weekdays", () => {
-    expect(formatScheduleSummary({ weekdays: "mon,wed,fri" })).toBe("One-time · Mon Wed Fri");
+    expect(formatScheduleSummary({ weekdays: "mon,wed,fri" })).toBe("Daily · Mon Wed Fri");
   });
 });
 

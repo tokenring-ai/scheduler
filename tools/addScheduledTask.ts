@@ -8,6 +8,11 @@ import getSchedule from "./getSchedule.ts";
 const name = "scheduler_add_task";
 const displayName = "Scheduler/add_task";
 
+export function buildTaskMessage(description: string, context: string | undefined): string {
+  const trimmedContext = context?.trim();
+  return trimmedContext ? `${description}\n\nADDITIONAL CONTEXT:\n${trimmedContext}` : description;
+}
+
 function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent): TokenRingToolResult {
   const scheduler = agent.requireService(SchedulerService);
 
@@ -17,9 +22,10 @@ function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent)
       before: task.before,
       after: task.after,
       repeat: task.repeat,
+      once: task.repeat ? undefined : true,
       timezone: task.timezone,
       lastRunTime: 0,
-      message: `${task.description}\n\nADDITIONAL CONTEXT:${task.context}`,
+      message: buildTaskMessage(task.description, task.context),
     }),
     agent,
   );

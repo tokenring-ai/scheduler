@@ -129,6 +129,43 @@ export default class SchedulerService implements TokenRingService {
     });
   }
 
+  /**
+   * Replace a task's definition in place. The run bookkeeping (`lastRunTime`)
+   * is kept, so editing a schedule does not make it fire again immediately;
+   * the scheduler reschedules the task from the new definition.
+   */
+  updateTask(name: string, task: ScheduledTask, agent: Agent): void {
+    const existing = agent.getState(ScheduleTaskState).tasks.get(name);
+    if (!existing) {
+      throw new ConfigurationError(this.name, `Task not found: ${name}`);
+    }
+    agent.mutateState(ScheduleTaskState, state => {
+      state.tasks.set(name, { ...task, lastRunTime: existing.lastRunTime });
+    });
+  }
+
+  /** Pause (`false`) or resume (`true`) a task without removing it. A running task finishes its current run. */
+  setTaskEnabled(name: string, enabled: boolean, agent: Agent): void {
+    const existing = agent.getState(ScheduleTaskState).tasks.get(name);
+    if (!existing) {
+      throw new ConfigurationError(this.name, `Task not found: ${name}`);
+    }
+    agent.mutateState(ScheduleTaskState, state => {
+      const next: ScheduledTask = { ...existing };
+      if (enabled) delete next.enabled;
+      else next.enabled = false;
+      state.tasks.set(name, next);
+    });
+  }
+
+  /** Clear the run history of one task, or of every task when `name` is omitted. */
+  clearHistory(agent: Agent, name?: string): void {
+    agent.mutateState(ScheduleTaskState, state => {
+      if (name === undefined) state.history.clear();
+      else state.history.delete(name);
+    });
+  }
+
   async watchTasks(agent: Agent, signal: AbortSignal) {
     for await (const taskState of agent.subscribeStateAsync(ScheduleTaskState, signal)) {
       const now = Date.now();
@@ -171,7 +208,35 @@ export default class SchedulerService implements TokenRingService {
     }
   }
 
+  /**
+   * Run a task immediately, outside its schedule. Any pending timer for the
+   * task is cancelled; when the run finishes the scheduler (if running)
+   * reschedules it from the new lastRunTime, and a `once` task is not
+   * scheduled again.
+   */
+  runTaskNow(name: string, agent: Agent): void {
+    const task = agent.getState(ScheduleTaskState).tasks.get(name);
+    if (!task) {
+      throw new ConfigurationError(this.name, `Task not found: ${name}`);
+    }
+
+    if (agent.getState(ScheduleExecutionState).tasks.get(name)?.status === "running") {
+      throw new ConfigurationError(this.name, `Task is already running: ${name}`);
+    }
+
+    agent.mutateState(ScheduleExecutionState, execState => {
+      const execEntry = execState.tasks.get(name);
+      if (execEntry?.timer) clearTimeout(execEntry.timer);
+      execState.tasks.set(name, { nextRunTime: Date.now(), status: "pending" });
+    });
+
+    void this.runTask(name, task, agent);
+  }
+
   async runTask(name: string, task: ScheduledTask, agent: Agent): Promise<void> {
+    // A timer captures the definition it was scheduled from; an edit that kept
+    // the same next run time must still deliver the edited message.
+    const currentTask = agent.getState(ScheduleTaskState).tasks.get(name) ?? task;
     const abortController = new AbortController();
     const signal = abortController.signal;
 
@@ -199,7 +264,7 @@ export default class SchedulerService implements TokenRingService {
 
       const requestId = agent.handleInput({
         from: `Scheduled task ${name}`,
-        message: task.message,
+        message: currentTask.message,
       });
 
       for await (const state of agent.subscribeStateAsync(AgentEventState, signal)) {
@@ -231,11 +296,8 @@ export default class SchedulerService implements TokenRingService {
 
     schedulerAgent.mutateState(ScheduleTaskState, state => {
       const task = state.tasks.get(name);
-      if (task) task.lastRunTime = Date.now();
-      if (!state.history.has(name)) state.history.set(name, []);
-
-      const historyEntries = state.history.get(name)!;
-      historyEntries.push({
+      if (task) state.tasks.set(name, { ...task, lastRunTime: now });
+      state.recordRun(name, {
         startTime: executionEntry?.startTime ?? 0,
         endTime: now,
         status,

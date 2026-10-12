@@ -5,7 +5,13 @@ import { parseInterval } from "./parseInterval.ts";
 
 export const MAX_DAYS_AHEAD = 30;
 
+/**
+ * Next time the task should fire, or null when it will not run: a paused
+ * (`enabled: false`) task, a `once` task that already ran, an invalid
+ * interval, or no matching day within MAX_DAYS_AHEAD.
+ */
 export function getNextRunTime(task: ScheduledTask): number | null {
+  if (task.enabled === false) return null;
   const tz = task.timezone || moment.tz.guess();
   const now = moment.tz(tz);
 

@@ -5,11 +5,13 @@ export const ScheduledTaskSchema = z.object({
   repeat: z
     .string()
     .exactOptional()
-    .meta({ description: "Cron-style repeat expression" } satisfies ConfigFieldMeta),
+    .meta({
+      description: 'Repeat interval as "<number> <unit>" (e.g. "30 minutes", "1 day"). If omitted the task runs once a day, unless "once" is set',
+    } satisfies ConfigFieldMeta),
   once: z
     .boolean()
     .exactOptional()
-    .meta({ description: "Run this task only once" } satisfies ConfigFieldMeta),
+    .meta({ description: "Run this task only once; it is not rescheduled after it runs" } satisfies ConfigFieldMeta),
   after: z
     .string()
     .exactOptional()
@@ -37,6 +39,10 @@ export const ScheduledTaskSchema = z.object({
     .exactOptional()
     .meta({ description: "Timezone used to evaluate the schedule" } satisfies ConfigFieldMeta),
   message: z.string().meta({ uiType: "multilineText", description: "Message/prompt delivered to the agent when this task fires" } satisfies ConfigFieldMeta),
+  enabled: z
+    .boolean()
+    .exactOptional()
+    .meta({ description: "Set to false to pause this task; the scheduler skips it until it is resumed. Omitted means enabled" } satisfies ConfigFieldMeta),
 });
 
 export type ScheduledTask = z.output<typeof ScheduledTaskSchema>;
@@ -47,6 +53,12 @@ export const SchedulerAgentConfigSchema = z
       .boolean()
       .default(true)
       .meta({ description: "Start the scheduler automatically for new agents" } satisfies ConfigFieldMeta),
+    maxHistoryPerTask: z
+      .number()
+      .int()
+      .min(1)
+      .default(50)
+      .meta({ description: "Run history entries kept per task; older runs are dropped" } satisfies ConfigFieldMeta),
     tasks: z
       .record(z.string(), ScheduledTaskSchema)
       .default({})

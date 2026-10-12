@@ -5,6 +5,7 @@ import { stripUndefinedKeys } from "@tokenring-ai/utility/object/stripObject";
 import SchedulerService from "../SchedulerService.ts";
 import { ScheduleExecutionState } from "../state/scheduleExecutionState.ts";
 import { ScheduleTaskState } from "../state/scheduleTaskState.ts";
+import { getNextRunTime } from "../utility/getNextRunTime.ts";
 import SchedulerRpcSchema from "./schema.ts";
 
 export default createRPCEndpoint(SchedulerRpcSchema, {
@@ -34,6 +35,46 @@ export default createRPCEndpoint(SchedulerRpcSchema, {
     }
     app.requireService(SchedulerService).removeTask(args.name, agent);
     return { status: "success", success: true, message: `Task "${args.name}" removed` };
+  },
+
+  updateTask(args, app: TokenRingApp) {
+    const agent = app.requireService(AgentManager).getAgent(args.agentId);
+    if (!agent) {
+      return { status: "agentNotFound" };
+    }
+    app.requireService(SchedulerService).updateTask(args.name, args.task, agent);
+    return { status: "success", success: true, message: `Task "${args.name}" updated` };
+  },
+
+  setTaskEnabled(args, app: TokenRingApp) {
+    const agent = app.requireService(AgentManager).getAgent(args.agentId);
+    if (!agent) {
+      return { status: "agentNotFound" };
+    }
+    app.requireService(SchedulerService).setTaskEnabled(args.name, args.enabled, agent);
+    return { status: "success", success: true, message: `Task "${args.name}" ${args.enabled ? "resumed" : "paused"}` };
+  },
+
+  clearHistory(args, app: TokenRingApp) {
+    const agent = app.requireService(AgentManager).getAgent(args.agentId);
+    if (!agent) {
+      return { status: "agentNotFound" };
+    }
+    app.requireService(SchedulerService).clearHistory(agent, args.taskName);
+    return { status: "success", success: true, message: args.taskName ? `History cleared for "${args.taskName}"` : "Run history cleared" };
+  },
+
+  previewNextRun(args) {
+    return { nextRunTime: getNextRunTime(args.task) };
+  },
+
+  runTask(args, app: TokenRingApp) {
+    const agent = app.requireService(AgentManager).getAgent(args.agentId);
+    if (!agent) {
+      return { status: "agentNotFound" };
+    }
+    app.requireService(SchedulerService).runTaskNow(args.name, agent);
+    return { status: "success", success: true, message: `Task "${args.name}" started` };
   },
 
   getStatus(args, app: TokenRingApp) {

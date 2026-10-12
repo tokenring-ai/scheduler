@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const ScheduledTaskSchema = z.object({
   repeat: z.string().exactOptional(),
+  once: z.boolean().exactOptional(),
   after: z.string().exactOptional(),
   before: z.string().exactOptional(),
   weekdays: z.string().exactOptional(),
@@ -11,6 +12,7 @@ const ScheduledTaskSchema = z.object({
   lastRunTime: z.number(),
   timezone: z.string().exactOptional(),
   message: z.string(),
+  enabled: z.boolean().exactOptional(),
 });
 
 const TaskRunHistorySchema = z.object({
@@ -59,6 +61,73 @@ export default {
       ]),
     },
     removeTask: {
+      type: "mutation",
+      input: z.object({
+        agentId: z.string(),
+        name: z.string(),
+      }),
+      result: z.discriminatedUnion("status", [
+        SuccessSchema.extend({
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema,
+      ]),
+    },
+    updateTask: {
+      type: "mutation",
+      input: z.object({
+        agentId: z.string(),
+        name: z.string(),
+        task: ScheduledTaskSchema,
+      }),
+      result: z.discriminatedUnion("status", [
+        SuccessSchema.extend({
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema,
+      ]),
+    },
+    setTaskEnabled: {
+      type: "mutation",
+      input: z.object({
+        agentId: z.string(),
+        name: z.string(),
+        enabled: z.boolean(),
+      }),
+      result: z.discriminatedUnion("status", [
+        SuccessSchema.extend({
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema,
+      ]),
+    },
+    clearHistory: {
+      type: "mutation",
+      input: z.object({
+        agentId: z.string(),
+        taskName: z.string().exactOptional(),
+      }),
+      result: z.discriminatedUnion("status", [
+        SuccessSchema.extend({
+          success: z.boolean(),
+          message: z.string(),
+        }),
+        AgentNotFoundSchema,
+      ]),
+    },
+    previewNextRun: {
+      type: "query",
+      input: z.object({
+        task: ScheduledTaskSchema,
+      }),
+      result: z.object({
+        nextRunTime: z.number().nullable(),
+      }),
+    },
+    runTask: {
       type: "mutation",
       input: z.object({
         agentId: z.string(),

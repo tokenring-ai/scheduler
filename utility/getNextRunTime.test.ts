@@ -11,6 +11,11 @@ describe("getNextRunTime", () => {
     now = Date.now();
   });
 
+  it("returns null for a paused task", () => {
+    expect(getNextRunTime({ message: "test", repeat: "1 hour", timezone, lastRunTime: 0, enabled: false })).toBeNull();
+    expect(getNextRunTime({ message: "test", repeat: "1 hour", timezone, lastRunTime: 0, enabled: true })).not.toBeNull();
+  });
+
   it("every interval without lastRunTime", () => {
     const task: ScheduledTask = {
       message: "test",

@@ -21,7 +21,7 @@ export default {
       if (history?.length) {
         for (const run of history) {
           lines.push(
-            `- [${new Date(run.startTime).toLocaleString()}] ${taskName} - ${run.status} (${Math.round(run.endTime - run.startTime)}s) ${run.message}`,
+            `- [${new Date(run.startTime).toLocaleString()}] ${taskName} - ${run.status} (${Math.round((run.endTime - run.startTime) / 1000)}s) ${run.message}`,
           );
         }
       }

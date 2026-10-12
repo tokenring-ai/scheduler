@@ -45,11 +45,11 @@ export default {
               },
               after: {
                 type: "text",
-                label: "Earliest time of day to run the task at (hh::mm, 24 hour clock, optional)",
+                label: "Earliest time of day to run the task at (HH:mm, 24 hour clock, optional)",
               },
               before: {
                 type: "text",
-                label: "Latest time of day to run the task at (hh::mm, 24 hour clock, optional)",
+                label: "Latest time of day to run the task at (HH:mm, 24 hour clock, optional)",
               },
             },
             type: "text",

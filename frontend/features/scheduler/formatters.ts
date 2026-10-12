@@ -16,6 +16,7 @@ export function formatRelativeTime(ts: number | null | undefined, now = Date.now
 /** Human summary of schedule constraints. */
 export function formatScheduleSummary(task: {
   repeat?: string | undefined;
+  once?: boolean | undefined;
   after?: string | undefined;
   before?: string | undefined;
   weekdays?: string | undefined;
@@ -23,8 +24,10 @@ export function formatScheduleSummary(task: {
   timezone?: string | undefined;
 }): string {
   const parts: string[] = [];
-  if (task.repeat) parts.push(`Every ${task.repeat}`);
-  else parts.push("One-time");
+  // Mirrors getNextRunTime: `once` wins, then the interval; with neither the task runs daily.
+  if (task.once) parts.push("One-time");
+  else if (task.repeat) parts.push(`Every ${task.repeat}`);
+  else parts.push("Daily");
 
   if (task.after || task.before) {
     const window = [task.after ?? "…", task.before ?? "…"].join("–");

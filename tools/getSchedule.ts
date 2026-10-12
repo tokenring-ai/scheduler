@@ -23,7 +23,7 @@ function execute(_args: z.output<typeof inputSchema>, agent: Agent): TokenRingTo
     const execEntry = executionState.tasks.get(taskName);
     const nextRun = execEntry?.nextRunTime ? new Date(execEntry.nextRunTime).toLocaleString() : "";
     const lastRun = task.lastRunTime ? new Date(task.lastRunTime).toLocaleString() : "Never";
-    const status = execEntry?.status ?? "Not scheduled";
+    const status = task.enabled === false ? "Paused" : (execEntry?.status ?? "Not scheduled");
 
     taskList.push(`${taskName} : 
   Message: ${task.message}

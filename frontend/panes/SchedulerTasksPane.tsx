@@ -1,3 +1,4 @@
+import { useAttachedAgentChat } from "@tokenring-ai/one-frontend/apps/chat/useAttachedAgentChat.ts";
 import AgentSessionList from "@tokenring-ai/one-frontend/components/AgentSessionList.tsx";
 import EmptyState from "@tokenring-ai/one-frontend/components/ui/EmptyState.tsx";
 import ErrorState from "@tokenring-ai/one-frontend/components/ui/ErrorState.tsx";
@@ -8,16 +9,12 @@ import SummaryStat from "@tokenring-ai/one-frontend/components/ui/SummaryStat.ts
 import { toastManager } from "@tokenring-ai/one-frontend/components/ui/toast.tsx";
 import ViewHeader from "@tokenring-ai/one-frontend/components/ui/ViewHeader.tsx";
 import ViewShell from "@tokenring-ai/one-frontend/components/ui/ViewShell.tsx";
-import { useDashboardApi } from "@tokenring-ai/one-frontend/dock/DashboardApiContext.tsx";
-import { openInMainArea } from "@tokenring-ai/one-frontend/dock/layout/mainArea.ts";
-import { usePanel } from "@tokenring-ai/one-frontend/dock/PanelContext.tsx";
-import { useAgentChatPanel } from "@tokenring-ai/one-frontend/dock/useAgentChatPanel.ts";
-import { useOpenAgentChat } from "@tokenring-ai/one-frontend/dock/useOpenAgentChat.ts";
 import type { UseAppAgentSessionResult } from "@tokenring-ai/one-frontend/hooks/useAppAgentSession.tsx";
 import { useAsyncActionGuard } from "@tokenring-ai/one-frontend/hooks/useAsyncActionGuard.ts";
 import { useConfirmDialog } from "@tokenring-ai/one-frontend/hooks/useConfirmDialog.tsx";
 import { useKeyboardShortcuts } from "@tokenring-ai/one-frontend/hooks/useKeyboardShortcuts.ts";
 import { useTick } from "@tokenring-ai/one-frontend/hooks/useTick.ts";
+import { usePaneLink, usePanel } from "@tokenring-ai/one-frontend/layout/hooks.ts";
 import { cn } from "@tokenring-ai/one-frontend/lib/utils.ts";
 import { schedulerRPCClient, useSchedulerStatus, useSchedulerTasks } from "@tokenring-ai/one-frontend/rpc.ts";
 import formatError from "@tokenring-ai/utility/error/formatError";
@@ -43,7 +40,7 @@ import { useEffect, useMemo, useState } from "react";
 import AddTaskForm from "../features/scheduler/AddTaskForm.tsx";
 import { formatRelativeTime, formatScheduleSummary, formatScheduleTime, truncateMessage } from "../features/scheduler/formatters.ts";
 import { useSchedulerAgentSession } from "../features/scheduler/useSchedulerAgentSession.ts";
-import { SCHEDULER_DASHBOARD_ID, SCHEDULER_RUNS_VIEW_ID } from "../manifest.ts";
+import { SCHEDULER_RUNS_VIEW_ID } from "../ids.ts";
 
 type TaskRunStatus = "pending" | "running" | "idle" | "paused";
 
@@ -111,15 +108,13 @@ function SchedulerAgentSessions({ session }: { session: UseAppAgentSessionResult
 
 /**
  * Scheduled tasks for the selected agent: next runs, scheduler start/stop and
- * the add-task form. Docked beside the Runs view on the Scheduler dashboard;
- * standalone elsewhere.
+ * the add-task form. Sits beside the Runs view in the Scheduler app.
  */
-export default function SchedulerTasksView() {
+export default function SchedulerTasksPane() {
   const panel = usePanel();
-  const dashboard = useDashboardApi();
-  const openAgentChat = useOpenAgentChat();
+  const paneLink = usePaneLink();
   const session = useSchedulerAgentSession();
-  useAgentChatPanel({ agentId: session.agentId });
+  const attachedChat = useAttachedAgentChat({ agentId: session.agentId });
 
   const { agentId: selectedAgentId, agent: selectedAgent, agents, isLoading: agentsLoading, isCreating } = session;
   const [showAddForm, setShowAddForm] = useState(false);
@@ -183,7 +178,7 @@ export default function SchedulerTasksView() {
         setEditingTask(null);
         setShowAddForm(true);
       },
-      enabled: panel.dashboardId === SCHEDULER_DASHBOARD_ID && panel.isActive && !showAddForm && Boolean(selectedAgentId),
+      enabled: panel.isActive && !showAddForm && Boolean(selectedAgentId),
     },
   ]);
 
@@ -289,7 +284,7 @@ export default function SchedulerTasksView() {
 
   const openRunHistory = () => {
     setShowAddForm(false);
-    openInMainArea(dashboard, SCHEDULER_RUNS_VIEW_ID, {}, { sidebarViews: [] });
+    paneLink(SCHEDULER_RUNS_VIEW_ID);
   };
 
   const isLoadingAgentData = Boolean(selectedAgentId) && (tasksQuery.isLoading || statusQuery.isLoading) && !tasksQuery.data;
@@ -383,7 +378,7 @@ export default function SchedulerTasksView() {
               {selectedAgentId ? (
                 <button
                   type="button"
-                  onClick={() => openAgentChat(selectedAgentId)}
+                  onClick={() => attachedChat.openChat()}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted hover:text-primary border border-primary rounded-lg focus-ring cursor-pointer"
                 >
                   Open chat

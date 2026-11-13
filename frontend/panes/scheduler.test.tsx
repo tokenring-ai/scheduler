@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { DashboardRouteMatch, ViewDefinition } from "@tokenring-ai/one-frontend/dock/types.ts";
-import { createFakeDashboardApi, renderView } from "@tokenring-ai/one-frontend/test/dock.tsx";
+import { defineView } from "@tokenring-ai/one-frontend/layout/define.ts";
+import { createLayoutRegistry } from "@tokenring-ai/one-frontend/layout/registry.ts";
+import { renderLayoutApp } from "@tokenring-ai/one-frontend/test/layout.tsx";
+import { MessageSquare } from "lucide-react";
 import type React from "react";
 
 const agent = {
@@ -137,19 +139,36 @@ void mock.module("@tokenring-ai/one-frontend/components/ui/toast.tsx", () => ({
 const PassThroughFocusTrap = ({ children }: { children: React.ReactNode }) => children;
 void mock.module("focus-trap-react", () => ({ FocusTrap: PassThroughFocusTrap, default: PassThroughFocusTrap }));
 
-const { default: contribution } = await import("../app.tsx");
-const { default: manifest, SCHEDULER_DASHBOARD_ID } = await import("../manifest.ts");
-const { SCHEDULER_PATH } = await import("../lib/paths.ts");
+const { SCHEDULER_APP, default: layout } = await import("../layout.ts");
+const { default: schedulerViews } = await import("../views.tsx");
 
-const getView = (id: string) => contribution.views.find(view => view.id === id) as ViewDefinition<any> | undefined;
-
-function renderSchedulerView(viewId: string) {
-  const view = getView(viewId)!;
-  const api = createFakeDashboardApi({ dashboardId: "scheduler", getView });
-  return renderView(view, {}, { api, path: "/scheduler", routes: ["/scheduler"] });
+function ChatStub() {
+  return <p>chat stub</p>;
 }
 
-describe("Scheduler dashboard views", () => {
+const chatView = defineView({
+  id: "chat",
+  kind: "agent",
+  title: params => params.agentId ?? "Chat",
+  icon: MessageSquare,
+  route: "agent/:agentId",
+  instanceKey: params => params.agentId ?? "",
+  component: ChatStub,
+});
+
+const registry = createLayoutRegistry({
+  apps: [SCHEDULER_APP],
+  views: [...schedulerViews.views, chatView],
+  kinds: [...(layout.kinds ?? []), { id: "agent", label: "Agents", plural: "agent chats" }],
+});
+
+/** Renders the Scheduler app at a URL; both views are open, so tests query by role/text. */
+function renderSchedulerView(viewId: string) {
+  const app = renderLayoutApp({ registry, url: viewId === "scheduler-runs" ? "/scheduler/runs" : "/scheduler" });
+  return { ...app, app };
+}
+
+describe("Scheduler views", () => {
   beforeEach(() => {
     defaultState();
     startScheduler.mockClear();
@@ -170,7 +189,8 @@ describe("Scheduler dashboard views", () => {
       renderSchedulerView("scheduler-tasks");
 
       expect(await screen.findByRole("heading", { name: "Tasks" })).toBeInTheDocument();
-      expect(screen.getByText("Daily standup")).toBeInTheDocument();
+      // The Runs pane beside it lists the task's history under the same name.
+      expect(screen.getAllByText("Daily standup").length).toBeGreaterThan(0);
       expect(screen.getByText(/Every 1 day/)).toBeInTheDocument();
       expect(screen.getByText("Pending")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Enable" })).toBeInTheDocument();
@@ -357,11 +377,11 @@ describe("Scheduler dashboard views", () => {
 
     it("opens the Runs view from an expanded task row", async () => {
       const user = userEvent.setup();
-      const { api } = renderSchedulerView("scheduler-tasks");
+      const app = renderSchedulerView("scheduler-tasks");
 
       await user.click(await screen.findByRole("button", { name: "Expand Daily standup" }));
       await user.click(screen.getByRole("button", { name: "View run history" }));
-      expect(api.opened.map(open => open.viewId)).toContain("scheduler-runs");
+      await waitFor(() => expect(app.location().pathname).toBe("/scheduler/runs"));
     });
   });
 
@@ -435,30 +455,22 @@ describe("Scheduler dashboard views", () => {
     });
   });
 
-  describe("dashboard definition", () => {
-    it("lays tasks beside runs on /scheduler and titles the document", () => {
-      const dashboard = contribution.dashboards[0]!;
-      expect(dashboard.routePath).toBe("/scheduler");
-      expect(dashboard.defaultLayout).toMatchObject({
-        kind: "row",
-        children: [
-          { kind: "panel", view: "scheduler-tasks" },
-          { kind: "panel", view: "scheduler-runs" },
-        ],
+  describe("app definition", () => {
+    it("lays tasks beside runs on /scheduler and keeps its id and path", () => {
+      expect(SCHEDULER_APP.id).toBe("scheduler");
+      expect(SCHEDULER_APP.path).toBe("/scheduler");
+      expect(SCHEDULER_APP.views).toContain("chat");
+      expect(SCHEDULER_APP.layout).toMatchObject({
+        split: "row",
+        children: [{ items: ["scheduler-tasks"] }, { items: ["scheduler-runs"] }],
       });
-      // The literal in app.tsx is a zero-arg function; the dashboard contract takes the route match.
-      const documentTitle = dashboard.documentTitle as ((match: DashboardRouteMatch) => string) | undefined;
-      expect(documentTitle?.({ params: {}, searchParams: new URLSearchParams(), pathname: "/scheduler" })).toBe("Scheduler");
+      expect(registry.routes.resolve("/scheduler")?.app).toBe("scheduler");
+      expect(registry.routes.resolve("/scheduler/runs")?.app).toBe("scheduler");
     });
 
-    it("keeps the manifest, dashboard and route helpers on one id and path", () => {
-      const dashboard = contribution.dashboards[0]!;
-      expect(SCHEDULER_DASHBOARD_ID).toBe("scheduler");
-      expect(SCHEDULER_PATH).toBe("/scheduler");
-      expect(manifest.id).toBe(SCHEDULER_DASHBOARD_ID);
-      expect(manifest.path).toBe(SCHEDULER_PATH);
-      expect(dashboard.id).toBe(SCHEDULER_DASHBOARD_ID);
-      expect(dashboard.path).toBe(SCHEDULER_PATH);
+    it("attaches the selected agent's chat beside the tasks", async () => {
+      renderSchedulerView("scheduler-tasks");
+      expect(await screen.findByText("chat stub")).toBeInTheDocument();
     });
   });
 });

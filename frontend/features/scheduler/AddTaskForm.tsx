@@ -40,6 +40,8 @@ function emptyValues(): TaskFormValues {
     weekdays: [],
     dayOfMonth: "",
     timezone: detectTimezone(),
+    implicitDaily: false,
+    omitTimezone: false,
   };
 }
 
@@ -70,7 +72,15 @@ export default function AddTaskForm({ agentId, existingNames, editing, onCreated
     [editing?.task.lastRunTime, editing?.task.enabled],
   );
 
-  const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) => setValues(prev => ({ ...prev, [key]: value }));
+  const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) =>
+    setValues(prev => ({
+      ...prev,
+      [key]: value,
+      // Picking Repeat or Timezone commits that field. Until then an implicit
+      // daily task and a missing timezone stay omitted on preview and save.
+      ...(key === "repeatPreset" ? { implicitDaily: false } : {}),
+      ...(key === "timezone" ? { omitTimezone: false } : {}),
+    }));
 
   const timezones = useMemo(() => {
     const set = new Set<string>([...COMMON_TIMEZONES, detectTimezone(), values.timezone]);

@@ -25,6 +25,16 @@ export interface TaskFormValues {
   weekdays: string[];
   dayOfMonth: string;
   timezone: string;
+  /**
+   * Loaded task has neither `once` nor `repeat` (next start of day).
+   * Cleared when Repeat changes, so an untouched edit does not persist `repeat`.
+   */
+  implicitDaily: boolean;
+  /**
+   * Loaded task has no timezone. The select may still show a guessed zone.
+   * Cleared when Timezone changes, so opening the editor does not persist the guess.
+   */
+  omitTimezone: boolean;
 }
 
 export type TaskFormResult = { ok: true; name: string; task: ScheduledTaskInput } | { ok: false; error: string };
@@ -33,7 +43,9 @@ const PRESET_VALUES = new Set<string>(REPEAT_PRESETS.map(p => p.value).filter(v 
 
 /** Seed the form from an existing task (edit mode). */
 export function taskToFormValues(name: string, task: ScheduledTaskInput, fallbackTimezone: string): TaskFormValues {
-  // A task with neither `once` nor `repeat` runs daily; "Every day" is the closest preset.
+  // Neither `once` nor `repeat` runs at the next start of day. Show "Every day"
+  // without storing the "1 day" interval, which is measured from lastRunTime.
+  const implicitDaily = !task.once && task.repeat == null;
   const repeat = task.once ? "" : (task.repeat ?? "1 day");
   const preset = PRESET_VALUES.has(repeat) ? repeat : "custom";
   return {
@@ -49,6 +61,8 @@ export function taskToFormValues(name: string, task: ScheduledTaskInput, fallbac
       .filter(Boolean),
     dayOfMonth: task.dayOfMonth != null ? String(task.dayOfMonth) : "",
     timezone: task.timezone ?? fallbackTimezone,
+    implicitDaily,
+    omitTimezone: task.timezone == null,
   };
 }
 
@@ -63,6 +77,7 @@ export function buildTaskFromForm(values: TaskFormValues, base: { lastRunTime?: 
   if (!name) return { ok: false, error: "Task name is required" };
   if (!message) return { ok: false, error: "Task message is required" };
 
+  const implicitDaily = values.implicitDaily && values.repeatPreset === "1 day";
   const repeat = values.repeatPreset === "custom" ? values.customRepeat.trim() || undefined : values.repeatPreset === "" ? undefined : values.repeatPreset;
   if (values.repeatPreset === "custom" && !repeat) return { ok: false, error: "Enter a custom interval (e.g. 2 hours)" };
   if (repeat && !isValidRepeatInterval(repeat)) return { ok: false, error: 'Interval must look like "2 hours", "30 minutes", or "1 day"' };
@@ -84,12 +99,12 @@ export function buildTaskFromForm(values: TaskFormValues, base: { lastRunTime?: 
     task: {
       message,
       lastRunTime: base.lastRunTime ?? 0,
-      ...(repeat ? { repeat } : { once: true }),
+      ...(implicitDaily ? {} : repeat ? { repeat } : { once: true }),
       ...(after ? { after } : {}),
       ...(before ? { before } : {}),
       ...(values.weekdays.length > 0 ? { weekdays: values.weekdays.join(" ") } : {}),
       ...(day != null ? { dayOfMonth: day } : {}),
-      ...(values.timezone ? { timezone: values.timezone } : {}),
+      ...(values.timezone && !values.omitTimezone ? { timezone: values.timezone } : {}),
       ...(base.enabled === false ? { enabled: false } : {}),
     },
   };

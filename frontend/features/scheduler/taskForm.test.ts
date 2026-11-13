@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { buildTaskFromForm, type TaskFormValues, taskToFormValues } from "./taskForm.ts";
+import moment from "moment-timezone";
+import { getNextRunTime } from "../../../utility/getNextRunTime.ts";
+import { buildTaskFromForm, type ScheduledTaskInput, type TaskFormValues, taskToFormValues } from "./taskForm.ts";
 
 const base: TaskFormValues = {
   name: "Brief",
@@ -11,6 +13,8 @@ const base: TaskFormValues = {
   weekdays: [],
   dayOfMonth: "",
   timezone: "UTC",
+  implicitDaily: false,
+  omitTimezone: false,
 };
 
 describe("buildTaskFromForm", () => {
@@ -44,6 +48,73 @@ describe("taskToFormValues", () => {
       repeatPreset: "",
       dayOfMonth: "3",
       timezone: "Asia/Tokyo",
+      implicitDaily: false,
+      omitTimezone: false,
     });
+  });
+});
+
+describe("edit round-trips", () => {
+  it("does not write repeat for an untouched default daily task, and the preview stays the next start of day", () => {
+    const timezone = "UTC";
+    const lastRunTime = moment.tz(timezone).startOf("day").add(12, "hours").valueOf();
+    const task: ScheduledTaskInput = { message: "Digest", lastRunTime, timezone, after: "09:00", weekdays: "mon fri" };
+    const values = taskToFormValues("Digest", task, "America/Chicago");
+    expect(values).toMatchObject({ repeatPreset: "1 day", timezone, implicitDaily: true, omitTimezone: false, weekdays: ["mon", "fri"] });
+
+    const built = buildTaskFromForm(values, { lastRunTime });
+    expect(built).toEqual({
+      ok: true,
+      name: "Digest",
+      task: { message: "Digest", lastRunTime, timezone, after: "09:00", weekdays: "mon fri" },
+    });
+
+    const open = { message: "Digest", lastRunTime, timezone };
+    const openValues = taskToFormValues("Digest", open, timezone);
+    const preview = buildTaskFromForm(openValues, { lastRunTime });
+    expect(preview).toEqual({ ok: true, name: "Digest", task: open });
+    if (!preview.ok) return;
+    const nextStartOfDay = moment.tz(lastRunTime + 86_400_000, timezone).startOf("day").valueOf();
+    expect(getNextRunTime(preview.task)).toBe(nextStartOfDay);
+    expect(getNextRunTime(preview.task)).toBe(getNextRunTime(open));
+    expect(getNextRunTime({ ...open, repeat: "1 day" })).not.toBe(nextStartOfDay);
+
+    expect(buildTaskFromForm({ ...openValues, implicitDaily: false }, { lastRunTime })).toMatchObject({
+      ok: true,
+      task: { repeat: "1 day", timezone },
+    });
+    const explicit = taskToFormValues("Digest", { ...open, repeat: "1 day" }, timezone);
+    expect(explicit.implicitDaily).toBe(false);
+    expect(buildTaskFromForm(explicit, { lastRunTime })).toMatchObject({ ok: true, task: { repeat: "1 day" } });
+  });
+
+  it("omits a missing timezone on preview and save unless the user picks one", () => {
+    const task: ScheduledTaskInput = { message: "Digest", lastRunTime: 4, repeat: "6 hours" };
+    const values = taskToFormValues("Digest", task, "Pacific/Auckland");
+    expect(values.timezone).toBe("Pacific/Auckland");
+    expect(values.omitTimezone).toBe(true);
+
+    const built = buildTaskFromForm(values, { lastRunTime: task.lastRunTime });
+    expect(built).toEqual({
+      ok: true,
+      name: "Digest",
+      task: { message: "Digest", lastRunTime: 4, repeat: "6 hours" },
+    });
+    if (!built.ok) return;
+    expect(getNextRunTime(built.task)).toBe(getNextRunTime(task));
+
+    expect(buildTaskFromForm({ ...values, omitTimezone: false }, { lastRunTime: 4 })).toEqual({
+      ok: true,
+      name: "Digest",
+      task: { message: "Digest", lastRunTime: 4, repeat: "6 hours", timezone: "Pacific/Auckland" },
+    });
+    expect(buildTaskFromForm({ ...values, timezone: "UTC", omitTimezone: false }, { lastRunTime: 4 })).toMatchObject({
+      ok: true,
+      task: { timezone: "UTC" },
+    });
+
+    const stored = taskToFormValues("Digest", { ...task, timezone: "UTC" }, "Pacific/Auckland");
+    expect(stored.omitTimezone).toBe(false);
+    expect(buildTaskFromForm(stored, { lastRunTime: 4 })).toMatchObject({ ok: true, task: { timezone: "UTC" } });
   });
 });

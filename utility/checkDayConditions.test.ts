@@ -1,27 +1,23 @@
 import { describe, expect, it } from "bun:test";
 import moment from "moment-timezone";
-import type { ScheduledTask } from "../schema.ts";
+import type { ScheduleTiming } from "../schema.ts";
 import { checkDayConditions } from "./checkDayConditions.ts";
 
 describe("checkDayConditions", () => {
   const timezone = "America/New_York";
 
   it("returns true when no conditions specified", () => {
-    const task: ScheduledTask = {
-      message: "test",
+    const task: ScheduleTiming = {
       timezone,
-      lastRunTime: 0,
     };
     const now = moment().tz(timezone);
     expect(checkDayConditions(task, now)).toBe(true);
   });
 
   it("checks dayOfMonth", () => {
-    const task: ScheduledTask = {
-      message: "test",
+    const task: ScheduleTiming = {
       dayOfMonth: 15,
       timezone,
-      lastRunTime: 0,
     };
     const day15 = moment().tz(timezone).date(15);
     const day20 = moment().tz(timezone).date(20);
@@ -30,11 +26,9 @@ describe("checkDayConditions", () => {
   });
 
   it("checks weekdays", () => {
-    const task: ScheduledTask = {
-      message: "test",
+    const task: ScheduleTiming = {
       weekdays: "mon,wed,fri",
       timezone,
-      lastRunTime: 0,
     };
     const monday = moment().tz(timezone).day(1);
     const tuesday = moment().tz(timezone).day(2);
@@ -45,12 +39,10 @@ describe("checkDayConditions", () => {
   });
 
   it("checks both dayOfMonth and weekday", () => {
-    const task: ScheduledTask = {
-      message: "test",
+    const task: ScheduleTiming = {
       dayOfMonth: 15,
       weekdays: "mon",
       timezone,
-      lastRunTime: 0,
     };
 
     const day15Monday = moment.tz("2025-12-15", timezone);

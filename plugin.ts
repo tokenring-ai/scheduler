@@ -25,7 +25,7 @@ export default {
     app.waitForService(RpcService, rpcService => {
       rpcService.registerEndpoint(schedulerRPC);
     });
-    app.addService(SchedulerService, new SchedulerService(app));
+    app.addService(SchedulerService, new SchedulerService(app)).load();
   },
   reconfigure(app, config) {
     app.requireService(SchedulerService).reconfigure(config.scheduler);

@@ -6,14 +6,15 @@ const inputSchema = {} as const satisfies AgentCommandInputSchema;
 export default {
   name: "schedule stop",
   description: "Stop the scheduler",
-  help: `Stop the scheduler service.
+  help: `Stop firing schedules (for the whole app) and stop the runs in progress. Stays stopped across restarts,
+until /schedule start.
 
 ## Example
 
 /schedule stop`,
   inputSchema,
   execute: ({ agent }: AgentCommandInputType<typeof inputSchema>): string => {
-    agent.requireService(SchedulerService).stopScheduler(agent);
+    agent.requireService(SchedulerService).setRunning(false);
     return "Scheduler stopped";
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

@@ -1,123 +1,104 @@
 import type Agent from "@tokenring-ai/agent/Agent";
-import ChatService from "@tokenring-ai/chat/ChatService";
 import type { TokenRingToolDefinition, TokenRingToolResult } from "@tokenring-ai/chat/schema";
-import { ToolCallError } from "@tokenring-ai/chat/util/tokenRingTool";
-import { stripUndefinedKeys } from "@tokenring-ai/utility/object/stripObject";
+import { ApprovalLevel } from "@tokenring-ai/chat/schema";
+import { requireToolApproval } from "@tokenring-ai/chat/util/requireToolApproval";
 import intelligentTruncate from "@tokenring-ai/utility/string/intelligentTruncate";
 import { z } from "zod";
+import { describeAction } from "../actions.ts";
 import SchedulerService from "../SchedulerService.ts";
-import type { ScheduledTask } from "../schema.ts";
-import { ScheduleTaskState } from "../state/scheduleTaskState.ts";
-import { buildTaskMessage } from "./addScheduledTask.ts";
-import getSchedule from "./getSchedule.ts";
+import type { ScheduleAction, ScheduleDefinition } from "../schema.ts";
+import { blankToUndefined, buildSchedulePrompt, describeSchedule, describeTiming } from "./shared.ts";
 
 const name = "scheduler_update_task";
-const displayName = "Scheduler/update_task";
-
-/** Replacing a schedule changes when an agent acts. Last-run bookkeeping is kept by the service. */
-const SAFETY_LEVEL = 6;
+const displayName = "Scheduler/update_schedule";
 
 const inputSchema = z.object({
-  taskName: z.string().describe("Name of the scheduled task to update"),
-  task: z.object({
-    description: z
-      .string()
-      .describe("The new task prompt. This replaces the task message entirely. It should be detailed enough for an AI agent to carry out the task."),
-    context: z.string().exactOptional().describe("Additional context appended to the message. Omit it to store only the description."),
-    repeat: z
-      .string()
-      .exactOptional()
-      .describe(
-        "How often to repeat the task, as '<number> <unit>' (e.g. '1 hour', '30 minutes', '3 days'). When set, the task stays recurring and `once` is ignored. Omit it for a one-shot, or for a daily task when `once` is false.",
-      ),
-    once: z
-      .boolean()
-      .exactOptional()
-      .describe(
-        "Run this task only once. Ignored when `repeat` is set. Omit it (and omit `repeat`) to run once. Set false with no `repeat` to run once a day.",
-      ),
-    after: z
-      .string()
-      .exactOptional()
-      .describe("Time of day in 'HH:mm' format (24-hour clock) to run the task after. Omit to clear an existing time window start."),
-    before: z
-      .string()
-      .exactOptional()
-      .describe("Time of day in 'HH:mm' format (24-hour clock) to run the task before. Omit to clear an existing time window end."),
-    timezone: z
-      .string()
-      .exactOptional()
-      .describe("IANA timezone string (e.g. 'America/New_York', 'UTC'). Omit to clear an existing timezone and use the user's timezone."),
-  }),
+  name: z.string().describe("Name of the schedule to update"),
+  prompt: z
+    .string()
+    .exactOptional()
+    .describe("The new instructions; replaces the old prompt entirely. Omit to keep the prompt (required for schedules that run a workflow or a task)."),
+  context: z.string().exactOptional().describe("Additional context appended to the new prompt."),
+  repeat: z
+    .string()
+    .exactOptional()
+    .describe(
+      "How often to repeat, as '<number> <unit>' (e.g. '1 hour', '1 day'); at least 1 minute. Omit for a one-time run (or a daily one with once: false).",
+    ),
+  once: z.boolean().exactOptional().describe("Ignored when `repeat` is set. Omit (with no `repeat`) to run once; false with no `repeat` runs once a day."),
+  after: z.string().exactOptional().describe("Earliest time of day, 'HH:mm' (24-hour). Omit to clear it."),
+  before: z.string().exactOptional().describe("Latest time of day, 'HH:mm' (24-hour). Omit to clear it."),
+  timezone: z.string().exactOptional().describe("IANA timezone (e.g. 'America/New_York', 'UTC'). Omit to clear it and use the server's."),
 });
 
-const blankToUndefined = (value: string | undefined) => {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-};
-
-/**
- * Full replacement of the message and schedule. Day constraints and pause state stay;
- * SchedulerService.updateTask keeps lastRunTime itself.
- */
-function replacementTask(existing: ScheduledTask | undefined, task: z.output<typeof inputSchema>["task"]): ScheduledTask {
-  const repeat = blankToUndefined(task.repeat);
-  const once = repeat ? undefined : task.once === false ? undefined : true;
-  return stripUndefinedKeys({
-    message: buildTaskMessage(task.description, task.context),
-    repeat,
-    once,
-    before: blankToUndefined(task.before),
-    after: blankToUndefined(task.after),
-    timezone: blankToUndefined(task.timezone),
-    weekdays: existing?.weekdays,
-    dayOfMonth: existing?.dayOfMonth,
-    enabled: existing?.enabled,
-    lastRunTime: existing?.lastRunTime ?? 0,
-  });
+function withPrompt(action: ScheduleAction, prompt: string | undefined): ScheduleAction {
+  if (prompt === undefined) return action;
+  switch (action.kind) {
+    case "job":
+    case "agent":
+      return { ...action, prompt };
+    case "queue":
+      return { ...action, item: { ...action.item, prompt } };
+    default:
+      throw new Error(`This schedule runs a ${action.kind}, which has no prompt to change; edit it in the Scheduler app`);
+  }
 }
 
-async function execute({ taskName, task }: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
-  const scheduler = agent.requireService(SchedulerService);
-  const existing = agent.getState(ScheduleTaskState).tasks.get(taskName);
-  const next = replacementTask(existing, task);
-  // updateTask throws before writing when the task does not exist.
-  if (!existing) scheduler.updateTask(taskName, next, agent);
-
-  const repeat = blankToUndefined(task.repeat);
-  const scheduleLine = repeat ? `Repeat: ${repeat}` : task.once === false ? "Schedule: once a day" : "Schedule: once";
-  const window = [blankToUndefined(task.after) ? `after ${task.after?.trim()}` : null, blankToUndefined(task.before) ? `before ${task.before?.trim()}` : null]
-    .filter(part => part !== null)
-    .join(", ");
-
-  const approved = await agent.requireService(ChatService).checkToolApproval(
-    {
-      toolName: name,
-      message: `Update scheduled task "${taskName}"?`,
-      detailedDescription: [
-        `Replace the message and schedule for "${taskName}". Its last run time is kept, so editing it does not make it fire again immediately.`,
-        scheduleLine + (window ? ` (${window})` : "") + (blankToUndefined(task.timezone) ? ` [${task.timezone?.trim()}]` : ""),
-        "",
-        "Message:",
-        intelligentTruncate(next.message, { maxLength: 2_000 }),
-      ].join("\n"),
-      safetyLevel: SAFETY_LEVEL,
-      default: false,
-    },
-    agent,
-  );
-  if (!approved) throw new ToolCallError(name, "User did not approve updating the scheduled task");
-
-  scheduler.updateTask(taskName, next, agent);
-  const schedule = getSchedule.execute({}, agent);
+/** A full replacement of the prompt and timing; the action's kind, weekdays, day of month and pause stay. */
+function replacement(existing: ScheduleDefinition, input: z.output<typeof inputSchema>): ScheduleDefinition {
+  const repeat = blankToUndefined(input.repeat);
+  const prompt = input.prompt === undefined ? undefined : buildSchedulePrompt(input.prompt, input.context);
   return {
-    message: `**Scheduler** Updated scheduled task ${taskName}`,
-    result: `Scheduled task '${taskName}' updated successfully.\n\n` + schedule.result,
+    action: withPrompt(existing.action, prompt),
+    ...(repeat ? { repeat } : input.once === false ? {} : { once: true }),
+    ...(blankToUndefined(input.after) && { after: blankToUndefined(input.after)! }),
+    ...(blankToUndefined(input.before) && { before: blankToUndefined(input.before)! }),
+    ...(blankToUndefined(input.timezone) && { timezone: blankToUndefined(input.timezone)! }),
+    ...(existing.weekdays !== undefined && { weekdays: existing.weekdays }),
+    ...(existing.dayOfMonth !== undefined && { dayOfMonth: existing.dayOfMonth }),
+    ...(existing.enabled !== undefined && { enabled: existing.enabled }),
+  };
+}
+
+async function execute(input: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
+  const scheduler = agent.requireService(SchedulerService);
+  const existing = scheduler.getSchedule(input.name);
+  if (!existing) throw new Error(`Schedule not found: ${input.name}`);
+  if (existing.source === "config") throw new Error(`Schedule "${input.name}" is defined in config and can only be edited there`);
+  // A scheduled tool run has its input fixed by whoever scheduled it, and an exact time has no repeat or window to edit.
+  if (existing.definition.action.kind === "tool" || existing.definition.at !== undefined) {
+    throw new Error(
+      `Schedule "${input.name}" is a fixed-time or tool schedule; agents cannot edit it. Remove it and schedule again, or edit it in the Scheduler app`,
+    );
+  }
+  const next = replacement(existing.definition, input);
+  const preview = scheduler.previewNextRun(next);
+  if (preview.error) throw new Error(preview.error);
+
+  await requireToolApproval(agent, {
+    toolName: name,
+    message: `Update the schedule "${input.name}"?`,
+    detailedDescription: [
+      `Replace the prompt and timing of "${input.name}". When it last ran is kept, so the edit does not make it fire again at once.`,
+      `Timing: ${describeTiming({ definition: next })}`,
+      "",
+      intelligentTruncate(describeAction(next.action), { maxLength: 2_000 }),
+    ].join("\n"),
+    // Changes a recurring run that acts with nobody watching.
+    safetyLevel: ApprovalLevel.SharedChange,
+    default: false,
+  });
+
+  const view = scheduler.updateSchedule(input.name, next);
+  return {
+    message: `**Scheduler** Updated schedule ${input.name}`,
+    result: `Schedule "${input.name}" updated.\n\n${describeSchedule(view)}`,
   };
 }
 
 const description =
-  "Replaces the message and schedule of an existing task (repeat interval or one-shot, time window, and timezone). Last run time is kept. Day-of-week, day-of-month, and pause state are left unchanged. Requires approval.";
+  "Replaces the prompt and timing of a schedule (repeat or one-time, time window, timezone). What it runs (a new agent or a chat), its days, " +
+  "last run time and pause state are kept. Requires approval.";
 
 export default {
   name,

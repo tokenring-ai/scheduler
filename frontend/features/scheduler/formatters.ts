@@ -2,6 +2,8 @@ import { formatDurationBetween } from "@tokenring-ai/utility/date/formatDuration
 import { formatRelativeTime as formatRelativeTimeBase } from "@tokenring-ai/utility/date/formatRelativeTime";
 import { formatTimestamp } from "@tokenring-ai/utility/date/formatTimestamp";
 import { truncateText } from "@tokenring-ai/utility/string/truncateText";
+import type { ScheduleAction } from "../../../schema.ts";
+import { repeatProblem } from "../../../utility/parseInterval.ts";
 
 /** Format a unix-ms timestamp for schedule UI display. */
 export function formatScheduleTime(ts: number | null | undefined, opts?: { withSeconds?: boolean }): string {
@@ -17,6 +19,7 @@ export function formatRelativeTime(ts: number | null | undefined, now = Date.now
 export function formatScheduleSummary(task: {
   repeat?: string | undefined;
   once?: boolean | undefined;
+  at?: string | undefined;
   after?: string | undefined;
   before?: string | undefined;
   weekdays?: string | undefined;
@@ -24,8 +27,9 @@ export function formatScheduleSummary(task: {
   timezone?: string | undefined;
 }): string {
   const parts: string[] = [];
-  // Mirrors getNextRunTime: `once` wins, then the interval; with neither the task runs daily.
-  if (task.once) parts.push("One-time");
+  // Mirrors getNextRunTime: `at` and `once` win, then the interval; with neither it runs daily.
+  if (task.at) parts.push(`Once, ${formatScheduleTime(Date.parse(task.at))}`);
+  else if (task.once) parts.push("One-time");
   else if (task.repeat) parts.push(`Every ${task.repeat}`);
   else parts.push("Daily");
 
@@ -53,20 +57,14 @@ export function formatDuration(startTime: number, endTime: number): string {
   return formatDurationBetween(startTime, endTime);
 }
 
-/** Truncate long task messages for list rows (default max 120 for schedule UI density). */
+/** Truncate long prompts for list rows (default max 120 for schedule UI density). */
 export function truncateMessage(message: string, max = 120): string {
   return truncateText(message, max);
 }
 
-/**
- * Validate a custom repeat interval against the backend parseInterval format:
- * "<number> <unit>" with unit in seconds|minutes|hours|days|weeks|months (singular or plural).
- * Number must be >= 1.
- */
+/** A repeat interval the scheduler accepts: "<number> <unit>", from 1 minute to a year. */
 export function isValidRepeatInterval(interval: string): boolean {
-  const match = interval.trim().match(/^(\d+)\s+(seconds?|minutes?|hours?|days?|weeks?|months?)$/i);
-  if (!match) return false;
-  return Number.parseInt(match[1]!, 10) >= 1;
+  return repeatProblem(interval) === null;
 }
 
 /**
@@ -102,7 +100,9 @@ export const REPEAT_PRESETS = [
   { value: "6 hours", label: "Every 6 hours" },
   { value: "1 day", label: "Every day" },
   { value: "1 week", label: "Every week" },
+  { value: "1 month", label: "Every month" },
   { value: "custom", label: "Custom interval…" },
+  { value: "at", label: "Once, at a date and time…" },
 ] as const;
 
 export const COMMON_TIMEZONES = [
@@ -120,3 +120,28 @@ export const COMMON_TIMEZONES = [
   "Asia/Kolkata",
   "Australia/Sydney",
 ] as const;
+
+/** One line saying what a schedule does. */
+export function formatActionSummary(action: ScheduleAction, agentName?: (agentId: string) => string | undefined): string {
+  switch (action.kind) {
+    case "job":
+      return `New ${action.agentType} agent`;
+    case "agent":
+      return `Prompt ${agentName?.(action.agentId) ?? `agent ${action.agentId}`}`;
+    case "queue":
+      return `Queue "${action.queue}": ${action.item.name}`;
+    case "workflow":
+      return `Workflow "${action.name}"`;
+    case "tool":
+      return `Run ${action.tool} in a new ${action.agentType} agent`;
+    case "task":
+      return `Task ${action.ref.taskId} (${action.ref.board}) · assignment ${action.assignmentId}`;
+  }
+}
+
+/** The prompt a schedule sends, if its action has one. */
+export function actionPrompt(action: ScheduleAction): string | null {
+  if (action.kind === "job" || action.kind === "agent") return action.prompt;
+  if (action.kind === "queue") return action.item.prompt;
+  return null;
+}

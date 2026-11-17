@@ -1,198 +1,74 @@
 import type { RPCSchema } from "@tokenring-ai/rpc/types";
-import { AgentNotFoundSchema, SuccessSchema } from "@tokenring-ai/rpc/types";
 import { z } from "zod";
+import { ScheduleDefinitionSchema, ScheduleRunSchema, ScheduleTimingSchema } from "../schema.ts";
 
-const ScheduledTaskSchema = z.object({
-  repeat: z.string().exactOptional(),
-  once: z.boolean().exactOptional(),
-  after: z.string().exactOptional(),
-  before: z.string().exactOptional(),
-  weekdays: z.string().exactOptional(),
-  dayOfMonth: z.number().min(1).max(31).exactOptional(),
+const ScheduleViewSchema = z.object({
+  name: z.string(),
+  source: z.enum(["config", "user"]),
+  definition: ScheduleDefinitionSchema,
+  enabled: z.boolean(),
+  state: z.enum(["scheduled", "running", "paused", "done", "missed", "error", "stopped"]),
   lastRunTime: z.number(),
-  timezone: z.string().exactOptional(),
-  message: z.string(),
-  enabled: z.boolean().exactOptional(),
-});
-
-const TaskRunHistorySchema = z.object({
-  startTime: z.number(),
-  endTime: z.number(),
-  status: z.enum(["completed", "failed"]),
-  message: z.string(),
-});
-
-const ExecutionEntrySchema = z.object({
   nextRunTime: z.number().nullable(),
-  status: z.enum(["pending", "running"]),
-  startTime: z.number().exactOptional(),
+  error: z.string().nullable(),
+  currentRun: ScheduleRunSchema.nullable(),
 });
+
+const ChangeResultSchema = z.object({ message: z.string() });
 
 export default {
   name: "Scheduler RPC",
   path: "/rpc/scheduler",
   methods: {
-    getTasks: {
+    listSchedules: {
       type: "query",
-      input: z.object({
-        agentId: z.string(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          tasks: z.record(z.string(), ScheduledTaskSchema),
-          count: z.number(),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({}),
+      result: z.object({ running: z.boolean(), schedules: z.array(ScheduleViewSchema) }),
     },
-    addTask: {
+    addSchedule: {
       type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-        name: z.string(),
-        task: ScheduledTaskSchema,
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({ name: z.string(), schedule: ScheduleDefinitionSchema }),
+      result: ChangeResultSchema,
     },
-    removeTask: {
+    updateSchedule: {
       type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-        name: z.string(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({ name: z.string(), schedule: ScheduleDefinitionSchema }),
+      result: ChangeResultSchema,
     },
-    updateTask: {
+    removeSchedule: {
       type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-        name: z.string(),
-        task: ScheduledTaskSchema,
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({ name: z.string() }),
+      result: ChangeResultSchema,
     },
-    setTaskEnabled: {
+    setScheduleEnabled: {
       type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-        name: z.string(),
-        enabled: z.boolean(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({ name: z.string(), enabled: z.boolean() }),
+      result: ChangeResultSchema,
+    },
+    runSchedule: {
+      type: "mutation",
+      input: z.object({ name: z.string() }),
+      result: ChangeResultSchema.extend({ run: ScheduleRunSchema }),
     },
     clearHistory: {
       type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-        taskName: z.string().exactOptional(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
-    },
-    previewNextRun: {
-      type: "query",
-      input: z.object({
-        task: ScheduledTaskSchema,
-      }),
-      result: z.object({
-        nextRunTime: z.number().nullable(),
-      }),
-    },
-    runTask: {
-      type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-        name: z.string(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
-    },
-    getStatus: {
-      type: "query",
-      input: z.object({
-        agentId: z.string(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          running: z.boolean(),
-          autoStart: z.boolean(),
-          executions: z.record(z.string(), ExecutionEntrySchema),
-        }),
-        AgentNotFoundSchema,
-      ]),
-    },
-    startScheduler: {
-      type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
-    },
-    stopScheduler: {
-      type: "mutation",
-      input: z.object({
-        agentId: z.string(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          success: z.boolean(),
-          message: z.string(),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({ name: z.string().exactOptional() }),
+      result: ChangeResultSchema,
     },
     getHistory: {
       type: "query",
-      input: z.object({
-        agentId: z.string(),
-        taskName: z.string().exactOptional(),
-      }),
-      result: z.discriminatedUnion("status", [
-        SuccessSchema.extend({
-          history: z.record(z.string(), z.array(TaskRunHistorySchema)),
-        }),
-        AgentNotFoundSchema,
-      ]),
+      input: z.object({ name: z.string().exactOptional() }),
+      result: z.object({ history: z.record(z.string(), z.array(ScheduleRunSchema)) }),
+    },
+    previewNextRun: {
+      type: "query",
+      input: z.object({ timing: ScheduleTimingSchema }),
+      result: z.object({ nextRunTime: z.number().nullable(), error: z.string().nullable() }),
+    },
+    setSchedulerRunning: {
+      type: "mutation",
+      input: z.object({ running: z.boolean() }),
+      result: ChangeResultSchema,
     },
   },
 } satisfies RPCSchema;

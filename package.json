@@ -1,13 +1,16 @@
 {
   "name": "@tokenring-ai/scheduler",
-  "description": "Cron-like service for triggering agent actions at specific intervals.",
+  "description": "Fires schedules: agent jobs, chat prompts, queue items, workflows and task dispatches at set times.",
   "version": "0.2.0",
   "dependencies": {
     "@tokenring-ai/app": "workspace:*",
     "@tokenring-ai/agent": "workspace:*",
     "@tokenring-ai/chat": "workspace:*",
+    "@tokenring-ai/queue": "workspace:*",
     "@tokenring-ai/rpc": "workspace:*",
+    "@tokenring-ai/tasks": "workspace:*",
     "@tokenring-ai/utility": "workspace:*",
+    "@tokenring-ai/workflow": "workspace:*",
     "zod": "^4.6.7",
     "moment-timezone": "^0.6.6"
   },

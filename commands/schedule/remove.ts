@@ -7,7 +7,7 @@ const inputSchema = {
   positionals: [
     {
       name: "name",
-      description: "Task name",
+      description: "Schedule name",
       required: true,
     },
   ],
@@ -15,17 +15,17 @@ const inputSchema = {
 
 export default {
   name: "schedule remove",
-  description: "Remove a scheduled task",
-  help: `Remove a scheduled task by name.
+  description: "Remove a schedule",
+  help: `Remove a schedule by name, with its run history. A run in progress is stopped.
 
 ## Example
 
-/schedule remove myTask`,
+/schedule remove nightly-report`,
   inputSchema,
   execute: ({ args, agent }: AgentCommandInputType<typeof inputSchema>): string => {
     const name = args.name;
     if (!name) throw new CommandFailedError("Usage: /schedule remove <name>");
-    agent.requireService(SchedulerService).removeTask(name, agent);
-    return `Task removed successfully`;
+    agent.requireService(SchedulerService).removeSchedule(name);
+    return `Schedule '${name}' removed`;
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

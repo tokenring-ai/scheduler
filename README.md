@@ -1,199 +1,118 @@
 # @tokenring-ai/scheduler
 
-Cron-like service for triggering agent actions at specific intervals.
+Fires schedules: agent jobs, chat prompts, queue items, workflows and task dispatches at set times.
 
 ## Overview
 
-The `@tokenring-ai/scheduler` package provides automated scheduling of AI agents with flexible timing options, runtime
-monitoring, and task state management. It runs within an AI agent to schedule and execute tasks based on configurable
-schedules.
+`SchedulerService` is an app-level trigger: named schedules (from config, or added by people and agents) fire an
+action at set times — start an agent job, prompt a chat, add a queue item, start a workflow, or dispatch a task's
+agent. Unattended runs go through the agent job engine (`AgentJobService`), so they get its approval snapshot,
+limits, time limits, cleanup and job records.
 
-**Key Features:**
+## Schedules
 
-- **Flexible Scheduling**: Support for interval-based, one-time, and repeating scheduling
-- **Time Window Control**: Define start and end times for task execution
-- **Day Conditions**: Schedule tasks on specific days of the week or month
-- **Timezone Support**: Full IANA timezone support for global scheduling
-- **Runtime Monitoring**: Real-time task status and execution history
-- **Interactive Task Management**: Chat commands for adding, removing, and monitoring tasks
-- **Programmatic API**: Tools for integrating scheduling into agent workflows
-- **RPC Interface**: Remote procedure call endpoint for external task management
-- **State Persistence**: Task configurations persist across agent restarts
-- **Graceful Shutdown**: Clean task cancellation and state cleanup
-- **Loop Commands**: Quick scheduling of repeated prompts via `/loop` command
+Schedules belong to the app, not to an agent: deleting an agent leaves them alone, and config schedules are not
+copied into agents. Each has a timing and an **action**:
 
-**Integration Points:**
+| Action kind | Does | Run status comes from |
+|---|---|---|
+| `job` `{ agentType, prompt }` | Starts an agent job (owner `scheduler`, origin the schedule): a fresh agent runs the prompt and is cleaned up | the job |
+| `agent` `{ agentId, prompt }` | Prompts an existing agent (a chat); queues behind its work, and stopping the run cancels only its own request. `/loop` uses this | the agent's response |
+| `queue` `{ queue, item: { name, prompt } }` | Adds an item to a work queue (needs the queue plugin) | enqueued = completed |
+| `workflow` `{ name }` | Starts a workflow run (needs the workflow plugin) | the run's job |
+| `task` `{ ref: { board, taskId }, assignmentId }` | Dispatches a task's assigned agent (needs the tasks plugin) | the dispatch |
 
-- Integrates with `@tokenring-ai/agent` for state management and background task execution
-- Registers tools with `@tokenring-ai/chat` for programmatic task management
-- Registers commands with `@tokenring-ai/agent` for interactive CLI operations
-- Registers RPC endpoint with `@tokenring-ai/rpc` for remote access
-- Uses `@tokenring-ai/utility` for configuration utilities
+Every job a schedule starts — directly, or through the queue item, workflow run or task dispatch it creates — records
+the schedule as its origin (`{ kind: "schedule", scheduleId }`), so the Agents app's Agent jobs page shows which
+schedule started it.
 
-## Installation
+User-added schedules, every schedule's run bookkeeping (`lastRunTime`, repeat anchor, pause of a config schedule)
+and run history (capped per schedule) are saved atomically to `schedules.json` in the workspace. Older versions kept
+tasks in each agent's state; a restored agent's tasks move into the store once, as `agent` schedules on that agent.
 
-The scheduler is installed as a plugin in your TokenRing application:
+**Timing.** Repeats stay on a grid counted from their first run (an edit of the timing starts a new grid from the
+last run), so long runs do not make them drift. `day`, `week` and `month` repeats follow the calendar in the
+schedule's timezone (DST-correct; a month from the 31st is the last day of a shorter month, then the 31st again).
+Without `repeat` a schedule runs once a day; with `once` it runs once and is then disabled. A slot missed while the
+app was down fires once when it is back, if its days and window allow, otherwise when the window next opens. Days
+are searched a full year ahead. Repeats are at least 1 minute and at most a year; timezones must be known IANA
+names. A schedule whose next run cannot be computed shows an **error** state.
 
-```bash
-bun install @tokenring-ai/scheduler
-```
+**Runs.** A run takes its slot when it starts (`lastRunTime` = the scheduled time), so a restart never fires it
+twice, and a failed run is not retried before the next slot. Runs link to their agent job (`jobId`). A run in
+flight when the app stops or crashes is recorded `interrupted` and not re-run.
 
-**Note:** This package is typically installed as part of the TokenRing application ecosystem and is not meant to be used
-standalone.
+**Exact time (`at`).** `at` is an ISO-8601 instant with `Z` or a UTC offset (`2026-11-20T09:00:00-05:00`). The
+schedule runs once at that instant (or once, as soon as the app is back, if it was down then) and is then done. It
+cannot be combined with `repeat`, a window, weekdays or a day of month, and a new schedule cannot be in the past.
 
-## Features
-
-- **Flexible Scheduling**: Support for interval-based, one-time, and repeating scheduling
-- **Time Window Control**: Define start and end times for task execution with `after` and `before` parameters
-- **Day Conditions**: Schedule tasks on specific days of the week (`weekdays`) or month (`dayOfMonth`)
-- **Timezone Support**: Full IANA timezone support for global scheduling
-- **Runtime Monitoring**: Real-time task status and execution history via `/schedule show` and `/schedule history`
-- **Interactive Task Management**: Chat commands for adding, removing, and monitoring tasks
-- **Programmatic API**: Tools for integrating scheduling into agent workflows (`scheduler_add_task`,
-  `scheduler_remove_task`, `scheduler_get_schedule`)
-- **RPC Interface**: Remote procedure call endpoint at `/rpc/scheduler` for external task management
-- **State Persistence**: Task configurations and run history persist across agent restarts; history keeps the newest
-  `maxHistoryPerTask` runs per task (default 50)
-- **Edit, Pause and Resume**: Tasks can be edited in place (keeping their last-run bookkeeping) and paused with
-  `enabled: false`; a paused task stays in the schedule but never fires until resumed
-- **Next-Run Preview**: The `previewNextRun` RPC computes a task's next run with the scheduler's own logic; the
-  Tasks view's add/edit form shows it live
-- **Graceful Shutdown**: Clean task cancellation and state cleanup via abort controllers
-- **Loop Commands**: Quick scheduling of repeated prompts via `/loop` command
-- **Background Task Execution**: Tasks run in background without blocking agent operations
-- **Event-Driven Architecture**: Watches for task state changes and updates schedules automatically
-- **Error Handling**: Comprehensive error handling with detailed logging and history recording
+**Tool action.** `{ kind: "tool", agentType, tool, input, maxCostUsd?, maxApprovalLevel? }` starts a fresh agent job
+(owner `scheduler`) and runs the named chat tool once with the fixed `input`, with no model turn. The tool's own
+approval runs, so a tool that needs a permission grant (for example `x_createPost`) is refused, and the refusal is
+recorded on the job, when none exists. The tool and input are checked when the schedule is saved and again when it
+fires. Only config, the RPC and plugin code create these; the `scheduler_add_task` and `scheduler_update_task` tools
+cannot, and refuse to edit one. `x_schedulePost` and `reddit_schedulePost` use it to schedule social posts.
 
 ## RPC
 
-Endpoint `/rpc/scheduler`: `getTasks`, `addTask`, `updateTask` (replace a task's definition, keeping `lastRunTime`),
-`setTaskEnabled` (pause/resume), `removeTask`, `runTask` (run now), `getStatus`, `startScheduler`, `stopScheduler`,
-`getHistory`, `clearHistory` (one task via `taskName`, or all) and `previewNextRun` (next run time for an unsaved task
-definition, `null` when it would not run within 30 days).
+Endpoint `/rpc/scheduler`: `listSchedules`, `addSchedule`, `updateSchedule` (user schedules; keeps `lastRunTime`),
+`removeSchedule`, `setScheduleEnabled` (pause/resume, also for config schedules), `runSchedule` (run now),
+`setSchedulerRunning` (start/stop firing, saved across restarts), `getHistory`, `clearHistory` and `previewNextRun`
+(next run of an unsaved timing, or why it cannot run).
 
 ## Web UI
 
-The Scheduler dashboard's **Tasks** view adds, edits, pauses/resumes, runs and removes tasks; its form shows a live
-"Next run" preview. The **Runs** view lists run history filtered by task and status, and its **Clear history** action
-clears the filtered task's history (or every task's) after confirming.
+The Scheduler app's **Schedules** view adds (any action kind), edits, pauses/resumes, runs and removes schedules, and
+starts or stops the scheduler; its form shows a live "Next run" preview. The **Runs** view lists every schedule's runs
+with a **Job** link to each run's agent job (`/agents/jobs?job=<id>`), filtered by schedule and status.
 
 ## Chat Commands
 
 | Command                        | Description                                       |
 |--------------------------------|---------------------------------------------------|
-| `/schedule start`              | Start the scheduler service                       |
-| `/schedule stop`               | Stop the scheduler service                        |
-| `/schedule show`               | Display current scheduled tasks with status       |
-| `/schedule add`                | Interactively add a new scheduled task            |
-| `/schedule remove <name>`      | Remove a scheduled task by name                   |
-| `/schedule history`            | Display task execution history                    |
-| `/loop [interval] <prompt>`    | Schedule a prompt to run repeatedly               |
+| `/schedule start`              | Start firing schedules (whole app)                |
+| `/schedule stop`               | Stop firing schedules and the runs in progress    |
+| `/schedule show`               | Display every schedule with its status            |
+| `/schedule add`                | Interactively add a schedule (new agent or this chat) |
+| `/schedule remove <name>`      | Remove a schedule by name                         |
+| `/schedule history [name]`     | Display run history                               |
+| `/loop [interval] <prompt>`    | Prompt this chat repeatedly                       |
 
 ## Tools
 
-| Name                       | Display Name          | Description                                                    |
-|----------------------------|-----------------------|----------------------------------------------------------------|
-| `scheduler_add_task`       | Scheduler/add_task    | Add a scheduled task to run at specified intervals             |
-| `scheduler_remove_task`    | Scheduler/removeTask  | Remove a scheduled task by name                                |
-| `scheduler_get_schedule`   | Scheduler/get_schedule | Get the current schedule of all scheduled tasks                |
+| Name                       | Approval | Description                                                    |
+|----------------------------|----------|----------------------------------------------------------------|
+| `scheduler_add_task`       | 5 once / 7 repeating | Add a schedule: a new agent (default) or this chat         |
+| `scheduler_update_task`    | 7        | Replace a schedule's prompt and timing                         |
+| `scheduler_set_enabled`    | 4 pause / 7 resume | Pause or resume a schedule                       |
+| `scheduler_remove_task`    | 6        | Remove a schedule and its history                              |
+| `scheduler_get_schedule`   | —        | List every schedule                                            |
 
 ## Configuration
 
-### Plugin Configuration
-
-The scheduler plugin is configured at the application level. Configuration is validated using Zod schemas and merged
-with agent-specific configuration using deep clone.
-
-**Configuration Example:**
-
 ```yaml
 scheduler:
-  agentDefaults:
-    autoStart: true
-    tasks:
-      Daily Report:
-        message: "/chat Generate daily report"
-        repeat: "1 day"
-        after: "09:00"
-        before: "17:00"
-        weekdays: "mon tue wed thu fri"
-      Health Check:
-        message: "/chat Check system health"
-        repeat: "30 minutes"
-        after: "00:00"
-        before: "23:59"
-      Weekly Cleanup:
-        message: "/chat Clean up old files"
-        repeat: "1 week"
-        weekdays: "sun"
+  autoStart: true            # fire schedules when the app starts (until /schedule stop)
+  maxHistoryPerSchedule: 50  # runs kept per schedule
+  schedules:
+    Daily Report:
+      repeat: "1 day"
+      after: "09:00"
+      before: "17:00"
+      weekdays: "mon tue wed thu fri"
+      timezone: "America/New_York"
+      action: { kind: job, agentType: code, prompt: "Generate the daily report" }
+    Weekly Docs:
+      repeat: "1 week"
+      weekdays: "sun"
+      action: { kind: queue, queue: docs, item: { name: "Refresh docs", prompt: "Refresh the docs" } }
 ```
 
-### Configuration Options
+Config schedules are edited in config; they can be paused and run from the app. The old `agentDefaults` block
+(tasks copied into every agent) is gone.
 
-| Option                    | Type     | Default | Description                                                            |
-|---------------------------|----------|---------|------------------------------------------------------------------------|
-| `agentDefaults.autoStart` | `boolean` | `true`  | Whether to automatically start the scheduler when tasks are configured |
-| `agentDefaults.maxHistoryPerTask` | `number` | `50` | Run history entries kept (and persisted) per task; older runs are dropped |
-| `agentDefaults.tasks`     | `object` | `{}`    | Initial task configurations keyed by task name                         |
-
-### ScheduledTask Schema
-
-| Property      | Type     | Required | Description                                                         |
-|---------------|----------|----------|---------------------------------------------------------------------|
-| `message`     | `string` | Yes      | Message/prompt delivered to the agent when this task fires          |
-| `repeat`      | `string` | No       | Run at fixed intervals (e.g., "30 seconds", "5 minutes", "2 hours") |
-| `after`       | `string` | No       | Start time in HH:MM format (e.g., "09:00")                          |
-| `before`      | `string` | No       | End time in HH:MM format (e.g., "17:00")                            |
-| `weekdays`    | `string` | No       | Days of week (e.g., "mon tue wed thu fri", "sat sun")               |
-| `dayOfMonth`  | `number` | No       | Specific day of month (1-31)                                        |
-| `lastRunTime` | `number` | No       | Timestamp of last execution (default: 0, hidden from UI)            |
-| `timezone`    | `string` | No       | IANA timezone string (e.g., 'America/New_York', 'UTC')              |
-| `enabled`     | `boolean` | No      | `false` pauses the task; omitted means enabled                      |
-
-**Note:** Tasks without `repeat` run only once. For one-time tasks, omit the `repeat` field. The task will run on the
-next available day that matches any day conditions (weekdays, dayOfMonth) and falls within the time window
-(after/before).
-
-### Time Intervals
-
-Supported time units:
-
-- `second`, `seconds`
-- `minute`, `minutes`
-- `hour`, `hours`
-- `day`, `days`
-- `week`, `weeks`
-- `month`, `months`
-
-Format: `"<number> <unit>"` (e.g., "5 minutes", "2 hours", "30 minute")
-
-### Time Windows
-
-Use `after` and `before` to define time windows:
-
-- `after`: Time to start running (HH:MM format, 24-hour clock)
-- `before`: Time to stop running (HH:MM format, 24-hour clock)
-
-### Days of Week
-
-Use three-letter abbreviations: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
-
-Multiple days: `"mon tue wed thu fri"` or `"sat sun"`
-
-### Day of Month
-
-Specify a specific day of the month (1-31) for monthly tasks.
-
-### Timezone Support
-
-Use IANA timezone strings to schedule tasks in specific timezones:
-
-- `"America/New_York"`
-- `"Europe/London"`
-- `"Asia/Tokyo"`
-- `"UTC"`
-
-If not specified, uses the user's detected timezone via `moment-timezone`.
+Timing fields: `repeat` (`"<number> <unit>"`, units second…month), `once`, `after` / `before` (`HH:mm`, 24-hour),
+`weekdays` (e.g. `"mon tue"`), `dayOfMonth` (1–31), `timezone` (IANA; default the server's), `enabled`.
 
 ## License
 

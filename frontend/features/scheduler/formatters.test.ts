@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import {
+  formatActionSummary,
   formatDuration,
   formatRelativeTime,
   formatScheduleSummary,
@@ -112,7 +113,8 @@ describe("isValidRepeatInterval", () => {
     expect(isValidRepeatInterval("5 minutes")).toBe(true);
     expect(isValidRepeatInterval("1 hour")).toBe(true);
     expect(isValidRepeatInterval("  2 days  ")).toBe(true);
-    expect(isValidRepeatInterval("30 seconds")).toBe(true);
+    expect(isValidRepeatInterval("30 seconds")).toBe(false);
+    expect(isValidRepeatInterval("1 month")).toBe(true);
   });
 
   test("rejects invalid intervals", () => {
@@ -134,5 +136,12 @@ describe("parseTimeOfDayMinutes", () => {
     expect(parseTimeOfDayMinutes("")).toBeNull();
     expect(parseTimeOfDayMinutes("25:00")).toBeNull();
     expect(parseTimeOfDayMinutes("12:60")).toBeNull();
+  });
+});
+
+describe("exact-time and tool schedules", () => {
+  it("summarises an at schedule and a tool action", () => {
+    expect(formatScheduleSummary({ at: "2099-01-02T09:30:00.000Z" })).toStartWith("Once, ");
+    expect(formatActionSummary({ kind: "tool", agentType: "social", tool: "x_createPost", input: {} })).toBe("Run x_createPost in a new social agent");
   });
 });

@@ -4,9 +4,8 @@ import { SCHEDULER_APP_ID, SCHEDULER_RUNS_KIND, SCHEDULER_RUNS_VIEW_ID, SCHEDULE
 import { SCHEDULER_PATH } from "./lib/paths.ts";
 
 /**
- * Scheduler: the selected agent's scheduled tasks beside its run history, with
- * the agent's chat attached on the right. Routes: `/scheduler` (tasks) and
- * `/scheduler/runs`.
+ * Scheduler: the app's schedules beside their run history. Schedules belong to
+ * the app, not to an agent. Routes: `/scheduler` (schedules) and `/scheduler/runs`.
  */
 export const SCHEDULER_APP = {
   id: SCHEDULER_APP_ID,
@@ -15,12 +14,11 @@ export const SCHEDULER_APP = {
   iconClass: "text-indigo-500",
   gradient: "from-indigo-500 to-violet-600",
   label: "Scheduler",
-  description: "Schedule recurring agent tasks and monitor runs",
+  description: "Run agents, chats, queues, workflows and tasks on a schedule",
   icon: Timer,
   group: "Operate",
-  views: [SCHEDULER_TASKS_VIEW_ID, SCHEDULER_RUNS_VIEW_ID, "chat"],
+  views: [SCHEDULER_TASKS_VIEW_ID, SCHEDULER_RUNS_VIEW_ID],
   primaryKind: SCHEDULER_TASKS_KIND,
-  placement: { agent: "right" },
   layout: {
     split: "row",
     sizes: [3, 2],
@@ -34,7 +32,7 @@ export const SCHEDULER_APP = {
 export default {
   apps: [SCHEDULER_APP],
   kinds: [
-    { id: SCHEDULER_TASKS_KIND, label: "Scheduled tasks", plural: "task lists" },
+    { id: SCHEDULER_TASKS_KIND, label: "Schedules", plural: "schedule lists" },
     { id: SCHEDULER_RUNS_KIND, label: "Run history", plural: "run histories" },
   ],
 } satisfies PluginLayoutManifest;

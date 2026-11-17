@@ -1,55 +1,49 @@
 import type Agent from "@tokenring-ai/agent/Agent";
-import ChatService from "@tokenring-ai/chat/ChatService";
 import type { TokenRingToolDefinition, TokenRingToolResult } from "@tokenring-ai/chat/schema";
-import { ToolCallError } from "@tokenring-ai/chat/util/tokenRingTool";
+import { ApprovalLevel } from "@tokenring-ai/chat/schema";
+import { requireToolApproval } from "@tokenring-ai/chat/util/requireToolApproval";
 import { z } from "zod";
 import SchedulerService from "../SchedulerService.ts";
-import { ScheduleTaskState } from "../state/scheduleTaskState.ts";
-import getSchedule from "./getSchedule.ts";
+import { describeSchedule } from "./shared.ts";
 
 const name = "scheduler_set_enabled";
 const displayName = "Scheduler/set_enabled";
 
-/** Pausing or resuming a task changes whether it will fire. A running task is not interrupted. */
-const SAFETY_LEVEL = 5;
-
 const inputSchema = z.object({
-  taskName: z.string().describe("Name of the scheduled task to pause or resume"),
-  enabled: z.boolean().describe("True resumes the task. False pauses it so the scheduler skips it until it is resumed."),
+  name: z.string().describe("Name of the schedule to pause or resume"),
+  enabled: z.boolean().describe("True resumes the schedule. False pauses it: it stays, but does not fire until resumed."),
 });
 
-async function execute({ taskName, enabled }: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
+async function execute({ name: scheduleName, enabled }: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
   const scheduler = agent.requireService(SchedulerService);
-  // setTaskEnabled throws before writing when the task does not exist.
-  if (!agent.getState(ScheduleTaskState).tasks.has(taskName)) {
-    scheduler.setTaskEnabled(taskName, enabled, agent);
+  const existing = scheduler.getSchedule(scheduleName);
+  if (!existing) throw new Error(`Schedule not found: ${scheduleName}`);
+  if (enabled && existing.definition.action.kind === "tool") {
+    throw new Error(
+      `Schedule "${scheduleName}" runs a tool with fixed input, so agents cannot resume it (it could repeat a public action); pausing is allowed. Resume it, or change its time, in the Scheduler app`,
+    );
   }
 
-  const approved = await agent.requireService(ChatService).checkToolApproval(
-    {
-      toolName: name,
-      message: `${enabled ? "Resume" : "Pause"} scheduled task "${taskName}"?`,
-      detailedDescription: enabled
-        ? `Resume "${taskName}" so the scheduler can fire it again.`
-        : `Pause "${taskName}". It stays on the schedule but will not fire until resumed. A run already in progress will finish.`,
-      safetyLevel: SAFETY_LEVEL,
-      default: false,
-    },
-    agent,
-  );
-  if (!approved) throw new ToolCallError(name, "User did not approve pausing or resuming the scheduled task");
+  await requireToolApproval(agent, {
+    toolName: name,
+    message: `${enabled ? "Resume" : "Pause"} the schedule "${scheduleName}"?`,
+    detailedDescription: enabled
+      ? `Resume "${scheduleName}" so it fires again, with nobody watching.`
+      : `Pause "${scheduleName}". It stays but will not fire until resumed. A run already in progress finishes.`,
+    // Resuming lets unattended runs happen again (shared change); pausing is easily undone.
+    safetyLevel: enabled ? ApprovalLevel.SharedChange : ApprovalLevel.RecoverableChange,
+    default: false,
+  });
 
-  scheduler.setTaskEnabled(taskName, enabled, agent);
-  const schedule = getSchedule.execute({}, agent);
-  const verb = enabled ? "resumed" : "paused";
+  const view = scheduler.setEnabled(scheduleName, enabled);
   return {
-    message: `**Scheduler** ${enabled ? "Resumed" : "Paused"} scheduled task ${taskName}`,
-    result: `Scheduled task '${taskName}' ${verb} successfully.\n\n` + schedule.result,
+    message: `**Scheduler** ${enabled ? "Resumed" : "Paused"} schedule ${scheduleName}`,
+    result: `Schedule "${scheduleName}" ${enabled ? "resumed" : "paused"}.\n\n${describeSchedule(view)}`,
   };
 }
 
 const description =
-  "Pauses or resumes a scheduled task. A paused task stays on the schedule but does not fire; a task that is already running finishes its current run. Requires approval.";
+  "Pauses or resumes a schedule. A paused schedule stays but does not fire; a run already in progress finishes. Schedules that run a tool can be paused but not resumed from here, and a one-time schedule at an exact time that already ran cannot be resumed.";
 
 export default {
   name,
